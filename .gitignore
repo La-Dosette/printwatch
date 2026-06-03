@@ -1,0 +1,23 @@
+# Données runtime / spécifiques à l'utilisateur (générées au premier lancement)
+# settings.json contient le webhook Discord — NE JAMAIS committer
+printers.json
+settings.json
+layouts.json
+
+# Config locale de l'éditeur / preview
+.claude/settings.local.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# OS / éditeurs
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log

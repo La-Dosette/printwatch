@@ -1,0 +1,1661 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PrintWatch — Monitoring 3D</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon.svg">
+<style>
+  /* Logo clair → inversé en thème sombre */
+  #brand-logo img{filter:invert(1) brightness(1.6);}
+  body[data-theme="light"] #brand-logo img{filter:none;}
+</style>
+<meta name="theme-color" content="#070810">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap');
+  :root{
+    --bg:#070810; --glass:rgba(22,26,40,.55); --glass-brd:rgba(255,255,255,.08);
+    --surface:#141826; --surface2:#1d2230; --modal-bg:rgba(20,24,38,.96);
+    --txt:#eef1f8; --muted:#828aa0; --accent:#6c8cff; --accent2:#a06bff;
+    --ok:#34e0a1; --warn:#ffce4d; --hot:#ff6b6b; --bed:#ff9f43; --cham:#ffd36b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:'Space Grotesk',system-ui,sans-serif;background:var(--bg);color:var(--txt);overflow-x:hidden}
+
+  /* ---- Fond anime (mesh gradient + blobs) ---- */
+  /* Fond statique peint une seule fois (aucune animation = zero charge GPU continue) */
+  .bg{position:fixed;inset:0;z-index:-2;
+    background:
+      radial-gradient(46vw 46vw at 12% 6%, rgba(59,79,255,.32), transparent 60%),
+      radial-gradient(40vw 40vw at 92% 96%, rgba(160,107,255,.30), transparent 60%),
+      radial-gradient(30vw 30vw at 60% 55%, rgba(0,140,200,.18), transparent 62%)}
+  .blob{display:none}   /* remplaces par le degrade statique ci-dessus */
+
+  /* ---- Header ---- */
+  /* Fond opaque (pas de backdrop-filter) : header collant sans recompositing au scroll */
+  header{display:flex;align-items:center;justify-content:space-between;padding:22px 34px;
+    background:var(--bg);position:sticky;top:0;z-index:20;border-bottom:1px solid var(--glass-brd)}
+  .brand{display:flex;align-items:center;gap:13px;font-size:21px;font-weight:700;letter-spacing:-.02em}
+  .logo{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+    display:grid;place-items:center;box-shadow:0 0 22px rgba(108,140,255,.4)}
+  .logo svg{width:19px;height:19px}
+  .brand small{font-size:11px;font-weight:500;color:var(--muted);letter-spacing:.18em;text-transform:uppercase;
+    border:1px solid var(--glass-brd);padding:3px 8px;border-radius:30px;margin-left:4px}
+  .btn{font:inherit;font-weight:600;cursor:pointer;border:none;border-radius:12px;padding:11px 20px;color:#fff;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));position:relative;overflow:hidden;
+    transition:transform .25s cubic-bezier(.34,1.56,.64,1),box-shadow .25s;box-shadow:0 6px 22px rgba(108,140,255,.35)}
+  .btn:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(160,107,255,.5)}
+  .btn:active{transform:translateY(0) scale(.97)}
+  .btn.ghost{background:var(--surface2);border:1px solid var(--glass-brd);color:var(--txt);box-shadow:none}
+
+  /* ---- Grille ---- */
+  .wrap{padding:30px 34px 60px;display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:26px}
+
+  /* ---- Carte glassmorphism ---- */
+  /* Fond opaque + contain:paint : repeindre un chiffre ne repeint PAS toute la carte ni son ombre */
+  .card{background:var(--surface);border:1px solid var(--glass-brd);border-radius:22px;overflow:hidden;
+    position:relative;box-shadow:0 12px 28px rgba(0,0,0,.4);contain:layout style paint;
+    animation:cardIn .55s cubic-bezier(.16,1,.3,1) both;transition:transform .2s,box-shadow .2s}
+  .card:hover{transform:translateY(-4px);box-shadow:0 18px 40px rgba(0,0,0,.5)}
+  @keyframes cardIn{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+  /* Bordure haute-lumière simple (plus de mask-composite coûteux au repaint) */
+  .card::before{content:"";position:absolute;inset:0;border-radius:22px;pointer-events:none;
+    border-top:1px solid rgba(255,255,255,.1)}
+
+  .card-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 14px}
+  .title{font-weight:600;font-size:16px;display:flex;align-items:center;gap:9px}
+  .type-chip{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);
+    background:rgba(108,140,255,.14);border:1px solid rgba(108,140,255,.25);padding:3px 8px;border-radius:20px}
+  .pill{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:500;color:var(--muted);
+    padding:5px 11px;border-radius:30px;background:var(--surface2);border:1px solid var(--glass-brd)}
+  .led{width:8px;height:8px;border-radius:50%;background:var(--muted);position:relative}
+  .pill.online .led{background:var(--ok)}
+  .pill.online{color:var(--ok)}
+  .pill.printing .led{background:var(--accent)}
+  .pill.printing{color:var(--accent)}
+  .pill.printing .led::after{content:"";position:absolute;inset:-4px;border-radius:50%;background:var(--accent);
+    opacity:.4;animation:ping 1.3s cubic-bezier(0,0,.2,1) infinite}
+  .pill.error .led{background:var(--hot)} .pill.error{color:var(--hot)}
+  @keyframes ping{0%{transform:scale(1);opacity:.5}80%,100%{transform:scale(2.4);opacity:0}}
+
+  .webcam{background:#04060d;aspect-ratio:16/9;position:relative;overflow:hidden;
+    display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px}
+  .webcam img{width:100%;height:100%;object-fit:cover;display:block}
+  /* scan : animation par transform (composité GPU) au lieu de top (layout) */
+  .webcam .scan{position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);
+    opacity:.45;animation:scan 3.5s linear infinite;will-change:transform}
+  @keyframes scan{0%{transform:translateY(0)}100%{transform:translateY(2400%)}}
+
+  .body{padding:18px 20px 20px}
+
+  /* ---- Anneau de progression ---- */
+  .prog-zone{display:flex;align-items:center;gap:18px;margin-bottom:16px}
+  .ring{position:relative;width:88px;height:88px;flex-shrink:0}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .track{fill:none;stroke:rgba(255,255,255,.07);stroke-width:8}
+  .ring .fill{fill:none;stroke:url(#grad);stroke-width:8;stroke-linecap:round;
+    transition:stroke-dashoffset .8s cubic-bezier(.16,1,.3,1)}
+  .ring .pct{position:absolute;inset:0;display:grid;place-items:center;font-weight:700;font-size:19px;
+    font-family:'JetBrains Mono',monospace}
+  .prog-info{flex:1;min-width:0}
+  .filename{font-size:13px;color:var(--txt);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .filename.empty{color:var(--muted);font-weight:400}
+  .eta{font-size:12px;color:var(--muted);margin-top:6px;display:flex;align-items:center;gap:6px}
+  .eta b{color:var(--txt);font-family:'JetBrains Mono',monospace;font-weight:500}
+
+  /* ---- Températures ---- */
+  .temps{display:flex;gap:10px;margin-bottom:14px}
+  .temp{flex:1;background:var(--surface2);border:1px solid var(--glass-brd);border-radius:14px;padding:11px 12px;
+    position:relative;overflow:hidden;contain:layout style paint}
+  .temp .lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:5px}
+  .temp .ico{width:7px;height:7px;border-radius:50%}
+  .temp.extruder .ico{background:var(--hot)} .temp.bed .ico{background:var(--bed)} .temp.chamber .ico{background:var(--cham)}
+  .temp .val{font-size:23px;font-weight:700;margin-top:3px;font-family:'JetBrains Mono',monospace;line-height:1}
+  .temp.extruder .val{color:var(--hot)} .temp.bed .val{color:var(--bed)} .temp.chamber .val{color:var(--cham)}
+  .temp .tgt{font-size:11px;color:var(--muted);margin-top:3px;height:14px;font-family:'JetBrains Mono',monospace}
+  .temp .heat{position:absolute;bottom:0;left:0;right:0;height:3px;transform:scaleX(0);transform-origin:left;transition:transform .8s}
+  .temp.extruder .heat{background:var(--hot)} .temp.bed .heat{background:var(--bed)} .temp.chamber .heat{background:var(--cham)}
+
+  .chart-box{height:120px}
+
+  .card-foot{padding:12px 20px;border-top:1px solid var(--glass-brd);display:flex;justify-content:flex-end}
+  .card-foot button{background:transparent;border:none;color:var(--muted);cursor:pointer;font:inherit;font-size:12px;
+    padding:5px 10px;border-radius:8px;transition:.2s}
+  .card-foot button:hover{color:var(--hot);background:rgba(255,107,107,.1)}
+
+  .empty-state{grid-column:1/-1;text-align:center;padding:90px 20px;color:var(--muted);animation:cardIn .6s both}
+  .empty-state .big{font-size:60px;margin-bottom:14px;opacity:.5}
+  .empty-state h3{font-size:20px;color:var(--txt);font-weight:600;margin-bottom:6px}
+
+  /* ---- Modal ---- */
+  .overlay{position:fixed;inset:0;background:rgba(4,6,13,.7);backdrop-filter:blur(6px);
+    display:flex;align-items:center;justify-content:center;z-index:60;opacity:0;pointer-events:none;transition:opacity .3s}
+  .overlay.show{opacity:1;pointer-events:auto}
+  .modal{background:var(--modal-bg);border:1px solid var(--glass-brd);border-radius:22px;width:min(460px,92vw);
+    padding:28px;backdrop-filter:blur(24px);box-shadow:0 30px 80px rgba(0,0,0,.6);
+    transform:scale(.9) translateY(20px);transition:transform .4s cubic-bezier(.16,1,.3,1)}
+  .overlay.show .modal{transform:scale(1) translateY(0)}
+  .modal h2{font-size:21px;font-weight:700;margin-bottom:5px}
+  .modal .sub{color:var(--muted);font-size:13px;margin-bottom:20px}
+  label{display:block;font-size:12px;color:var(--muted);margin:14px 0 7px;font-weight:500}
+  input{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--glass-brd);
+    background:var(--surface2);color:var(--txt);font:inherit;transition:.25s}
+  input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(108,140,255,.18)}
+  .hint{font-size:11px;color:var(--muted);margin-top:5px}
+  .err{color:var(--hot);font-size:13px;margin-top:12px;min-height:18px}
+  .row-btns{display:flex;gap:11px;justify-content:flex-end;margin-top:22px}
+  .spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);
+    border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px;margin-right:7px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .num{transition:color .3s}
+
+  /* ---- Onglets ---- */
+  .tabs{position:relative;display:flex;gap:4px;background:var(--surface2);border:1px solid var(--glass-brd);
+    padding:5px;border-radius:30px}
+  .tab{position:relative;z-index:2;font:inherit;font-weight:600;font-size:13px;cursor:pointer;border:none;background:transparent;
+    color:var(--muted);padding:8px 18px;border-radius:24px;transition:color .3s}
+  .tab.active{color:#fff}
+  .tab-ind{position:absolute;z-index:1;top:5px;bottom:5px;border-radius:24px;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 4px 16px rgba(108,140,255,.45);
+    transition:left .35s cubic-bezier(.34,1.4,.5,1),width .35s cubic-bezier(.34,1.4,.5,1)}
+
+  /* ---- Vue Statistiques ---- */
+  .stats-wrap{grid-template-columns:1fr;max-width:1100px;margin:0 auto}
+  .stat-block{animation:cardIn .6s cubic-bezier(.16,1,.3,1) both}
+  .stat-head{display:flex;align-items:center;gap:10px;margin-bottom:16px;font-size:18px;font-weight:600}
+  .stat-head .type-chip{font-size:10px}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:22px}
+  .kpi{background:var(--surface);border:1px solid var(--glass-brd);border-radius:18px;padding:18px 18px 16px;
+    position:relative;overflow:hidden;transition:transform .25s}
+  .kpi:hover{transform:translateY(-3px)}
+  .kpi::after{content:"";position:absolute;top:-30%;right:-20%;width:90px;height:90px;border-radius:50%;
+    background:radial-gradient(circle,var(--kc,#6c8cff),transparent 70%);opacity:.25}
+  .kpi .klbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+  .kpi .kval{font-size:28px;font-weight:700;font-family:'JetBrains Mono',monospace;margin-top:8px;line-height:1}
+  .kpi .ksub{font-size:11px;color:var(--muted);margin-top:5px;min-height:14px}
+  .kpi.k-jobs{--kc:#6c8cff} .kpi.k-time{--kc:#34e0a1} .kpi.k-fil{--kc:#ff9f43}
+  .kpi.k-rate{--kc:#a06bff} .kpi.k-long{--kc:#ffd36b}
+  .ring-rate{position:relative;width:54px;height:54px;float:right;margin:-4px -2px 0 0}
+  .ring-rate svg{transform:rotate(-90deg)} .ring-rate .t{fill:none;stroke:rgba(255,255,255,.08);stroke-width:6}
+  .ring-rate .f{fill:none;stroke:#a06bff;stroke-width:6;stroke-linecap:round;transition:stroke-dashoffset 1s cubic-bezier(.16,1,.3,1)}
+
+  .jobs-title{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin:0 4px 12px}
+  .jobs{display:flex;flex-direction:column;gap:10px;margin-bottom:34px}
+  .job{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--glass-brd);
+    border-radius:14px;padding:11px 14px;animation:jobIn .5s cubic-bezier(.16,1,.3,1) both}
+  @keyframes jobIn{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:none}}
+  .job .thumb{width:46px;height:46px;border-radius:10px;object-fit:cover;background:#0a0d16;flex-shrink:0;border:1px solid var(--glass-brd)}
+  .job .jmain{flex:1;min-width:0}
+  .job .jname{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .job .jmeta{font-size:11px;color:var(--muted);margin-top:3px;display:flex;gap:12px;flex-wrap:wrap}
+  .job .jmeta span{font-family:'JetBrains Mono',monospace}
+  .jbadge{font-size:11px;font-weight:600;padding:5px 11px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+  .jbadge.completed{color:var(--ok);background:rgba(52,224,161,.12);border:1px solid rgba(52,224,161,.25)}
+  .jbadge.cancelled,.jbadge.interrupted{color:var(--bed);background:rgba(255,159,67,.12);border:1px solid rgba(255,159,67,.25)}
+  .jbadge.error,.jbadge.klippy_shutdown,.jbadge.klippy_disconnect{color:var(--hot);background:rgba(255,107,107,.12);border:1px solid rgba(255,107,107,.25)}
+  .jbadge.in_progress{color:var(--accent);background:rgba(108,140,255,.12);border:1px solid rgba(108,140,255,.25)}
+  .stat-empty{color:var(--muted);text-align:center;padding:50px}
+
+  /* ---- Boutons d'en-tete ---- */
+  .head-actions{display:flex;align-items:center;gap:10px}
+  .icon-btn{font-size:17px;line-height:1;cursor:pointer;border:1px solid var(--glass-brd);background:var(--surface2);
+    color:var(--txt);width:40px;height:40px;border-radius:12px;display:grid;place-items:center;transition:transform .2s,background .2s}
+  .icon-btn:hover{transform:translateY(-2px);background:rgba(108,140,255,.15)}
+
+  /* ---- Theme clair ---- */
+  body[data-theme="light"]{--bg:#eef1f7;--txt:#161a26;--muted:#5a6478;--glass-brd:rgba(0,0,0,.09);
+    --surface:#ffffff;--surface2:rgba(0,0,0,.045);--modal-bg:rgba(255,255,255,.97)}
+  body[data-theme="light"] .bg{background:
+    radial-gradient(46vw 46vw at 12% 6%, rgba(108,140,255,.20), transparent 60%),
+    radial-gradient(40vw 40vw at 92% 96%, rgba(160,107,255,.18), transparent 60%),
+    radial-gradient(30vw 30vw at 60% 55%, rgba(0,180,220,.12), transparent 62%)}
+  body[data-theme="light"] .card,body[data-theme="light"] .kpi,body[data-theme="light"] .job{box-shadow:0 10px 30px rgba(80,90,130,.12)}
+  body[data-theme="light"] header{background:var(--bg)}
+
+  /* ---- Graphe d'activite & filament ---- */
+  .panels{display:grid;grid-template-columns:1.4fr 1fr;gap:14px;margin-bottom:24px}
+  @media(max-width:760px){.panels{grid-template-columns:1fr}}
+  .panel{background:var(--surface);border:1px solid var(--glass-brd);border-radius:18px;padding:16px 18px}
+  .panel h4{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px;font-weight:600}
+  .activity-box{height:130px}
+  .ftype{display:flex;flex-direction:column;gap:11px}
+  .ftype-row .ft-top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px}
+  .ftype-row .ft-top b{font-family:'JetBrains Mono',monospace}
+  .ft-bar{height:8px;border-radius:5px;background:var(--surface2);overflow:hidden}
+  .ft-bar > div{height:100%;border-radius:5px;width:0;transition:width .9s cubic-bezier(.16,1,.3,1)}
+  .cost{margin-top:16px;padding-top:14px;border-top:1px solid var(--glass-brd);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .cost label{margin:0;font-size:12px}
+  .cost input{width:90px;padding:7px 10px;font-family:'JetBrains Mono',monospace}
+  .cost .total{margin-left:auto;font-weight:700;font-size:18px;font-family:'JetBrains Mono',monospace;color:var(--ok)}
+
+  .block-head{display:flex;align-items:center;justify-content:space-between}
+  .csv-btn{font:inherit;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--glass-brd);
+    background:var(--surface2);color:var(--muted);padding:7px 13px;border-radius:10px;transition:.2s}
+  .csv-btn:hover{color:var(--accent);border-color:var(--accent)}
+  .job{cursor:pointer}
+  .job:hover{border-color:rgba(108,140,255,.4)}
+
+  /* ---- Modale detail job ---- */
+  .jd-grid{display:flex;gap:18px}
+  .jd-thumb{width:150px;height:150px;border-radius:14px;object-fit:cover;background:var(--surface2);flex-shrink:0;border:1px solid var(--glass-brd)}
+  .jd-info{flex:1;min-width:0}
+  .jd-rows{display:flex;flex-direction:column;gap:9px;margin-top:6px}
+  .jd-row{display:flex;justify-content:space-between;font-size:13px;border-bottom:1px solid var(--glass-brd);padding-bottom:8px}
+  .jd-row span{color:var(--muted)} .jd-row b{font-weight:500;font-family:'JetBrains Mono',monospace;text-align:right}
+  @media(max-width:560px){.jd-grid{flex-direction:column}.jd-thumb{width:100%;height:180px}}
+
+  /* ---- Mode TV (plein ecran) ---- */
+  body.tv header .tabs,body.tv header .head-actions{display:none}
+  body.tv .wrap{padding:40px;grid-template-columns:repeat(auto-fill,minmax(460px,1fr));gap:34px}
+  body.tv .card{transform:none}
+  body.tv .card-foot,body.tv .controls{display:none}
+
+  /* ---- Controles imprimante ---- */
+  .controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .ctrl,.ctrl-select{flex:1;min-width:84px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;
+    border:1px solid var(--glass-brd);background:var(--surface2);color:var(--txt);padding:9px 10px;border-radius:10px;
+    transition:.2s;display:flex;align-items:center;justify-content:center;gap:5px}
+  .ctrl:hover:not(:disabled){border-color:var(--accent);background:rgba(108,140,255,.14)}
+  .ctrl:disabled{opacity:.32;cursor:not-allowed}
+  .ctrl.danger:hover:not(:disabled){border-color:var(--hot);background:rgba(255,107,107,.14);color:var(--hot)}
+  .ctrl.estop{color:var(--hot);border-color:rgba(255,107,107,.3)}
+  .ctrl-select{cursor:pointer}
+
+  /* ---- Reglages : interrupteurs ---- */
+  .alerts-toggles{display:flex;flex-direction:column;gap:12px;margin-top:18px}
+  .chk{display:flex;align-items:center;gap:11px;font-size:14px;color:var(--txt);cursor:pointer;margin:0}
+  .chk input{width:auto;accent-color:var(--accent);width:17px;height:17px;cursor:pointer}
+
+  /* ---- Toast ---- */
+  .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(90px);
+    background:var(--surface);border:1px solid var(--glass-brd);color:var(--txt);padding:13px 22px;border-radius:13px;
+    box-shadow:0 14px 44px rgba(0,0,0,.5);z-index:90;opacity:0;transition:transform .4s cubic-bezier(.16,1,.3,1),opacity .4s;
+    font-size:14px;font-weight:500;pointer-events:none}
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+  .toast.err{border-color:var(--hot);color:var(--hot)}
+
+  /* ---- Sante machine ---- */
+  .health{margin-top:14px;background:var(--surface2);border:1px solid var(--glass-brd);border-radius:14px;padding:12px 14px}
+  .health-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .hstat{display:flex;flex-direction:column;gap:2px}
+  .hstat span{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  .hstat b{font-size:15px;font-weight:600;font-family:'JetBrains Mono',monospace}
+  .sensors{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .schip{font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--glass-brd);
+    padding:4px 9px;border-radius:20px;font-family:'JetBrains Mono',monospace}
+  .schip b{color:var(--txt);font-weight:600}
+
+  /* ---- Poignee de glissement + menu config carte ---- */
+  .drag-handle{cursor:grab;color:var(--muted);font-size:15px;line-height:1;user-select:none;padding:0 2px;opacity:.6;transition:.2s}
+  .drag-handle:hover{opacity:1;color:var(--accent)}
+  .card.dragging{opacity:.5;transform:scale(.98)}
+  .card.drop-target{outline:2px dashed var(--accent);outline-offset:3px}
+  .cfg-wrap{position:relative}
+  .card-cfg{cursor:pointer;border:none;background:transparent;color:var(--muted);font-size:18px;line-height:1;
+    padding:2px 6px;border-radius:8px;transition:.2s}
+  .card-cfg:hover{color:var(--txt);background:var(--surface2)}
+  .cfg-menu{position:absolute;right:0;top:30px;z-index:30;background:var(--modal-bg);border:1px solid var(--glass-brd);
+    border-radius:12px;padding:10px;min-width:160px;box-shadow:0 16px 44px rgba(0,0,0,.5);display:none;flex-direction:column;gap:8px}
+  .cfg-menu.show{display:flex}
+  .cfg-menu .chk{font-size:13px}
+
+  /* ---- Mode compact ---- */
+  body.compact .wrap{grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px}
+  body.compact .webcam,body.compact .chart-box,body.compact .controls,body.compact .health{display:none!important}
+  body.compact .body{padding:14px 16px}
+  body.compact .ring{width:64px;height:64px}
+  body.compact .ring svg{width:64px;height:64px}
+
+  /* ---- Visibilite par carte ---- */
+  .card.hide-webcam .webcam{display:none}
+  .card.hide-chart .chart-box{display:none}
+  .card.hide-controls .controls{display:none}
+  .card.hide-health .health{display:none}
+
+  /* ---- Apparence : champs couleur ---- */
+  .appearance-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+  .color-field{display:flex;align-items:center;gap:10px}
+  .color-field input[type=color]{width:42px;height:38px;padding:2px;border-radius:10px;cursor:pointer;background:var(--surface2)}
+  .section-sep{margin:22px 0 4px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600;
+    border-top:1px solid var(--glass-brd);padding-top:18px}
+
+  /* =====================================================
+     PANEL BUILDER — panneaux libres
+     ===================================================== */
+  #view-panels{padding:0 0 60px}
+
+  .panel-toolbar{display:flex;align-items:center;gap:9px;padding:14px 28px;
+    border-bottom:1px solid var(--glass-brd);flex-wrap:wrap;position:sticky;top:57px;z-index:15;
+    background:var(--bg)}
+  .panel-toolbar select{font:inherit;font-size:13px;padding:8px 10px;border-radius:10px;
+    border:1px solid var(--glass-brd);background:var(--surface2);color:var(--txt);cursor:pointer}
+  .panel-toolbar select:focus{outline:none;border-color:var(--accent)}
+  .pt-name{font:inherit;font-size:13px;padding:8px 12px;border-radius:10px;
+    border:1px solid var(--glass-brd);background:var(--surface2);color:var(--txt);width:160px;transition:.2s}
+  .pt-name:focus{outline:none;border-color:var(--accent)}
+  .pt-btn{font:inherit;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--glass-brd);
+    background:var(--surface2);color:var(--txt);padding:8px 14px;border-radius:10px;transition:.2s;white-space:nowrap}
+  .pt-btn:hover{border-color:var(--accent);color:var(--accent)}
+  .pt-btn.danger:hover{border-color:var(--hot);color:var(--hot)}
+  .pt-btn.active{background:linear-gradient(135deg,var(--accent),var(--accent2));border-color:transparent;color:#fff;
+    box-shadow:0 4px 14px rgba(108,140,255,.4)}
+  .pt-sep{width:1px;height:28px;background:var(--glass-brd);flex-shrink:0}
+  .pt-label{font-size:11px;color:var(--muted);white-space:nowrap}
+
+  .panel-grid-outer{padding:20px 28px;overflow:auto;min-height:calc(100vh - 120px)}
+  .panel-grid{position:relative;width:100%;min-height:700px}
+  .pg-rows{position:absolute;inset:0;pointer-events:none;opacity:.35}
+  .pg-col,.pg-row{position:absolute;background:rgba(108,140,255,.08);border:1px dashed rgba(108,140,255,.18);border-radius:4px}
+
+  .pw{position:absolute;background:var(--surface);border:1px solid var(--glass-brd);border-radius:16px;
+    overflow:hidden;display:flex;flex-direction:column;contain:layout style paint;
+    box-shadow:0 6px 18px rgba(0,0,0,.35);transition:box-shadow .2s;
+    animation:cardIn .45s cubic-bezier(.16,1,.3,1) both}
+  .pw:hover{box-shadow:0 12px 38px rgba(0,0,0,.5)}
+  .pw.edit-mode{cursor:default}
+  .pw.dragging{opacity:.55;box-shadow:0 20px 60px rgba(0,0,0,.7);z-index:100;transition:none}
+  .pw.drag-over{outline:2px dashed var(--accent);outline-offset:2px}
+  .pw-header{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--glass-brd);
+    flex-shrink:0;min-height:38px}
+  .pw-drag-handle{cursor:grab;color:var(--muted);font-size:14px;user-select:none;opacity:.7;transition:.2s}
+  .pw-drag-handle:hover{opacity:1;color:var(--accent);cursor:grab}
+  .pw-drag-handle:active{cursor:grabbing}
+  .pw-title{flex:1;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pw-del{font:inherit;cursor:pointer;border:none;background:transparent;color:var(--muted);font-size:14px;padding:2px 5px;border-radius:6px;transition:.2s}
+  .pw-del:hover{color:var(--hot);background:rgba(255,107,107,.12)}
+  .pw-body{flex:1;overflow:hidden;position:relative;padding:10px 12px}
+  .pw-body.no-pad{padding:0}
+  .pw-resize{position:absolute;bottom:4px;right:4px;width:16px;height:16px;cursor:nwse-resize;z-index:5;
+    display:flex;align-items:flex-end;justify-content:flex-end;padding:2px;opacity:.5;transition:.2s}
+  .pw-resize:hover{opacity:1}
+  .pw-resize svg{pointer-events:none}
+
+  /* ---- Widget : progress ---- */
+  .pw-progress{display:flex;align-items:center;gap:12px;height:100%}
+  .pw-ring-sm{flex-shrink:0}
+  .pw-pinfo{flex:1;min-width:0}
+  .pw-fname{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px}
+  .pw-pct{font-size:26px;font-weight:700;font-family:'JetBrains Mono',monospace;line-height:1}
+  .pw-eta-s{font-size:11px;color:var(--muted);margin-top:4px;font-family:'JetBrains Mono',monospace}
+
+  /* ---- Widget : temps ---- */
+  .pw-temps-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;height:100%}
+  .pw-temp{background:var(--surface2);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;justify-content:center}
+  .pw-temp .lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+  .pw-temp .val{font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;margin-top:2px}
+  .pw-temp .tgt{font-size:10px;color:var(--muted)}
+  .pw-temp.ext .val{color:var(--hot)}.pw-temp.bed .val{color:var(--bed)}.pw-temp.cham .val{color:var(--cham)}
+
+  /* ---- Widget : health ---- */
+  .pw-health-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .pw-hitem{background:var(--surface2);border-radius:10px;padding:8px 10px}
+  .pw-hitem span{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:block}
+  .pw-hitem b{font-size:16px;font-weight:700;font-family:'JetBrains Mono',monospace}
+  .pw-sensors-row{margin-top:8px;display:flex;flex-wrap:wrap;gap:5px}
+
+  /* ---- Widget : chart ---- */
+  .pw-chart{position:absolute;inset:8px}
+
+  /* ---- Widget : webcam ---- */
+  .pw-webcam{position:absolute;inset:0;background:#000;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px}
+  .pw-webcam img{width:100%;height:100%;object-fit:cover}
+
+  /* ---- Widget : controls ---- */
+  .pw-ctrl-grid{display:flex;flex-wrap:wrap;gap:7px;align-content:flex-start}
+  .pw-ctrl-grid .ctrl{flex:1;min-width:80px}
+
+  /* ---- Widget picker ---- */
+  .wp-printers{margin-bottom:16px}
+  .wp-types{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+  .wp-type{background:var(--surface2);border:1px solid var(--glass-brd);border-radius:12px;
+    padding:14px 12px;cursor:pointer;text-align:center;transition:.25s}
+  .wp-type:hover{border-color:var(--accent);background:rgba(108,140,255,.1)}
+  .wp-type .ico{font-size:24px;margin-bottom:6px}
+  .wp-type .lbl{font-size:12px;font-weight:600}
+  .wp-type .desc{font-size:10px;color:var(--muted);margin-top:2px}
+
+  /* ---- Grille fantôme en mode edition ---- */
+  .ghost-cell{position:absolute;border-radius:8px;background:rgba(108,140,255,.18);
+    border:2px dashed rgba(108,140,255,.5);pointer-events:none;transition:all .1s}
+
+  /* =====================================================
+     PERSONNALISATION GLOBALE
+     ===================================================== */
+  /* --- Niveaux d'animation --- */
+  body.anim-reduced .logo,body.anim-reduced .webcam .scan,body.anim-reduced .led::after,
+  body.anim-reduced .card,body.anim-reduced .stat-block,body.anim-reduced .job,
+  body.anim-reduced .pw,body.anim-reduced .empty-state,body.anim-reduced .ring .fill{animation:none!important}
+  body.anim-none *,body.anim-none *::before,body.anim-none *::after{
+    animation:none!important;transition:none!important;scroll-behavior:auto!important}
+
+  /* --- Style de fond --- */
+  body.bg-subtle .bg{opacity:.38}
+  body.bg-flat .bg{background:var(--bg)!important}
+
+  /* --- Police --- */
+  body.font-system{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+  body.font-mono-ui{font-family:'JetBrains Mono','Space Grotesk',ui-monospace,monospace}
+
+  /* --- Rayon des coins --- */
+  body.radius-sharp .card,body.radius-sharp .kpi,body.radius-sharp .job,body.radius-sharp .panel,
+  body.radius-sharp .pw,body.radius-sharp .modal,body.radius-sharp .temp,body.radius-sharp .health,
+  body.radius-sharp .webcam,body.radius-sharp .icon-btn,body.radius-sharp .btn,body.radius-sharp .ctrl{border-radius:7px!important}
+  body.radius-round .card,body.radius-round .kpi,body.radius-round .job,body.radius-round .panel,
+  body.radius-round .pw,body.radius-round .modal,body.radius-round .temp,body.radius-round .health,
+  body.radius-round .webcam{border-radius:26px!important}
+
+  /* --- Densité (espacement) --- */
+  body.dense .wrap{gap:14px}
+  body.dense .body{padding:13px 15px}
+  body.dense .card-head{padding:12px 15px 10px}
+  body.dense .temp{padding:8px 10px}
+
+  /* --- Pastilles de presets couleur --- */
+  .preset-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .preset{width:30px;height:30px;border-radius:9px;cursor:pointer;border:2px solid transparent;transition:transform .15s,border-color .15s}
+  .preset:hover{transform:scale(1.12)}
+  .preset.active{border-color:var(--txt)}
+  .opt-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+  .opt-grid label{margin:0 0 6px}
+  .opt-grid select,.opt-row select{width:100%;font:inherit;font-size:13px;padding:9px 11px;border-radius:10px;
+    border:1px solid var(--glass-brd);background:var(--surface2);color:var(--txt);cursor:pointer}
+  .opt-grid select:focus,.opt-row select:focus{outline:none;border-color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="bg"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
+<div class="grain"></div>
+
+<header>
+  <div class="brand">
+    <span class="logo" id="brand-logo" style="background:transparent;box-shadow:none;width:38px;height:38px">
+      <img src="/static/logo.svg" alt="PrintWatch" style="width:100%;height:100%;object-fit:contain">
+    </span>
+    <span id="brand-name">PrintWatch</span> <small>universel</small>
+  </div>
+  <nav class="tabs">
+    <button class="tab active" data-tab="dashboard" onclick="switchTab('dashboard')">Tableau de bord</button>
+    <button class="tab" data-tab="stats" onclick="switchTab('stats')">Statistiques</button>
+    <button class="tab" data-tab="panels" onclick="switchTab('panels')">Panneaux</button>
+    <span class="tab-ind" id="tab-ind"></span>
+  </nav>
+  <div class="head-actions">
+    <button class="icon-btn" id="compact-btn" title="Vue compacte" onclick="toggleCompact()">▦</button>
+    <button class="icon-btn" title="Réglages & alertes Discord" onclick="openSettings()">⚙️</button>
+    <button class="icon-btn" id="theme-btn" title="Thème clair / sombre" onclick="toggleTheme()">🌙</button>
+    <button class="icon-btn" title="Mode TV (plein écran)" onclick="toggleTV()">📺</button>
+    <button class="btn" onclick="openModal()">+ Ajouter</button>
+  </div>
+</header>
+
+<div id="view-dashboard"><div class="wrap" id="grid"></div></div>
+<div id="view-stats" style="display:none"><div class="wrap stats-wrap" id="stats"></div></div>
+<div id="view-panels" style="display:none">
+  <div class="panel-toolbar">
+    <span class="pt-label">Layout :</span>
+    <select id="layout-select" onchange="switchLayout(this.value)"><option value="">— nouveau —</option></select>
+    <input class="pt-name" id="layout-name" placeholder="Nom du layout…" maxlength="30">
+    <button class="pt-btn" onclick="saveCurrentLayout()">💾 Enregistrer</button>
+    <button class="pt-btn danger" onclick="deleteCurrentLayout()" title="Supprimer ce layout">🗑</button>
+    <div class="pt-sep"></div>
+    <button class="pt-btn" onclick="openWidgetPicker()">＋ Widget</button>
+    <button class="pt-btn" id="edit-btn" onclick="toggleEditMode()">✏️ Éditer</button>
+  </div>
+  <div class="panel-grid-outer">
+    <div class="panel-grid" id="panel-grid">
+      <div id="ghost-cell" class="ghost-cell" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<svg width="0" height="0"><defs><linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
+  <stop offset="0%" stop-color="#6c8cff"/><stop offset="100%" stop-color="#a06bff"/>
+</linearGradient></defs></svg>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2>Ajouter une imprimante</h2>
+    <div class="sub">Entre l'adresse IP — le protocole est détecté automatiquement.</div>
+    <label>Adresse IP / hôte</label>
+    <input id="f-host" placeholder="192.168.1.15">
+    <label>Nom (optionnel)</label>
+    <input id="f-name" placeholder="Voron 2.4 du garage">
+    <label>URL webcam (optionnel)</label>
+    <input id="f-webcam" placeholder="http://192.168.1.15/webcam/?action=stream">
+    <div class="hint">Vide = chemin standard Klipper essayé automatiquement.</div>
+    <label>Clé API OctoPrint (optionnel)</label>
+    <input id="f-apikey" placeholder="Uniquement pour OctoPrint">
+    <div class="err" id="f-err"></div>
+    <div class="row-btns">
+      <button class="btn ghost" onclick="closeModal()">Annuler</button>
+      <button class="btn" id="f-submit" onclick="addPrinter()">Détecter &amp; ajouter</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="jd-overlay">
+  <div class="modal" style="width:min(560px,94vw)">
+    <h2 id="jd-name">Détail de l'impression</h2>
+    <div class="sub" id="jd-status"></div>
+    <div class="jd-grid">
+      <img class="jd-thumb" id="jd-thumb" alt="" onerror="this.style.visibility='hidden'">
+      <div class="jd-info"><div class="jd-rows" id="jd-rows"></div></div>
+    </div>
+    <div class="row-btns"><button class="btn ghost" onclick="closeJob()">Fermer</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="set-overlay">
+  <div class="modal">
+    <h2>Réglages &amp; alertes</h2>
+    <div class="sub">Reçois une notification Discord quand une impression se termine, échoue, etc.</div>
+    <label>Webhook Discord</label>
+    <input id="set-webhook" placeholder="https://discord.com/api/webhooks/...">
+    <div class="hint">Discord → Paramètres du salon → Intégrations → Webhooks → Nouveau → copier l'URL. Vide = désactivé.</div>
+    <div class="alerts-toggles">
+      <label class="chk"><input type="checkbox" id="al-complete"> ✅ Fin d'impression</label>
+      <label class="chk"><input type="checkbox" id="al-error"> ❌ Erreurs</label>
+      <label class="chk"><input type="checkbox" id="al-offline"> ⚠️ Déconnexion / reconnexion</label>
+    </div>
+    <div class="section-sep">Apparence</div>
+    <label>Nom du dashboard</label>
+    <input id="set-name" placeholder="PrintWatch">
+    <label>Logo (emoji ou URL d'image)</label>
+    <input id="set-logo" placeholder="🖨️  ou  https://exemple.com/logo.png">
+    <label>Couleurs</label>
+    <div class="appearance-grid">
+      <div class="color-field"><input type="color" id="set-accent" value="#6c8cff"><span>Accent</span></div>
+      <div class="color-field"><input type="color" id="set-accent2" value="#a06bff"><span>Secondaire</span></div>
+    </div>
+    <div class="preset-row" id="preset-row"></div>
+
+    <div class="opt-grid">
+      <div><label>Animations</label>
+        <select id="set-anim">
+          <option value="full">Complètes</option>
+          <option value="reduced">Réduites (perf)</option>
+          <option value="none">Aucune (perf max)</option>
+        </select></div>
+      <div><label>Fond</label>
+        <select id="set-bg">
+          <option value="color">Dégradé coloré</option>
+          <option value="subtle">Sobre</option>
+          <option value="flat">Uni</option>
+        </select></div>
+      <div><label>Police</label>
+        <select id="set-font">
+          <option value="rounded">Space Grotesk</option>
+          <option value="system">Système</option>
+          <option value="mono-ui">Monospace</option>
+        </select></div>
+      <div><label>Coins</label>
+        <select id="set-radius">
+          <option value="normal">Normaux</option>
+          <option value="sharp">Carrés</option>
+          <option value="round">Très arrondis</option>
+        </select></div>
+      <div><label>Densité</label>
+        <select id="set-density">
+          <option value="comfort">Confort</option>
+          <option value="dense">Compacte</option>
+        </select></div>
+      <div><label>Thème</label>
+        <select id="set-theme">
+          <option value="dark">Sombre</option>
+          <option value="light">Clair</option>
+        </select></div>
+    </div>
+    <div class="hint" style="margin-top:10px">💡 Pour réduire le lag : Animations « Réduites » + Fond « Uni ».</div>
+    <div class="err" id="set-err"></div>
+    <div class="row-btns">
+      <button class="btn ghost" onclick="testWebhook()">Tester</button>
+      <button class="btn ghost" onclick="closeSettings()">Fermer</button>
+      <button class="btn" onclick="saveSettings()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="wp-overlay">
+  <div class="modal" style="width:min(520px,94vw)">
+    <h2>Ajouter un widget</h2>
+    <div class="sub">Choisis l'imprimante puis le type de widget.</div>
+    <label>Imprimante</label>
+    <select class="wp-printers" id="wp-printer" style="width:100%;font:inherit;padding:10px 12px;border-radius:10px;border:1px solid var(--glass-brd);background:var(--surface2);color:var(--txt)"></select>
+    <div class="wp-types" id="wp-types">
+      <div class="wp-type" onclick="addWidget('progress')"><div class="ico">⭕</div><div class="lbl">Progression</div><div class="desc">Anneau + fichier + ETA</div></div>
+      <div class="wp-type" onclick="addWidget('temps')"><div class="ico">🌡️</div><div class="lbl">Températures</div><div class="desc">Buse · plateau · chambre</div></div>
+      <div class="wp-type" onclick="addWidget('health')"><div class="ico">💻</div><div class="lbl">Santé machine</div><div class="desc">CPU · RAM · capteurs</div></div>
+      <div class="wp-type" onclick="addWidget('chart')"><div class="ico">📈</div><div class="lbl">Graphe</div><div class="desc">Températures temps réel</div></div>
+      <div class="wp-type" onclick="addWidget('webcam')"><div class="ico">📷</div><div class="lbl">Webcam</div><div class="desc">Flux vidéo live</div></div>
+      <div class="wp-type" onclick="addWidget('controls')"><div class="ico">🎮</div><div class="lbl">Contrôles</div><div class="desc">Pause · reprise · préchauffe</div></div>
+    </div>
+    <div class="row-btns" style="margin-top:18px">
+      <button class="btn ghost" onclick="closeWidgetPicker()">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const POLL_MS=2500, MAX_POINTS=60, RING_R=40, RING_C=2*Math.PI*RING_R;
+const charts={}, history={}, cards={}, shown={};
+const statCharts={}, statJobs={}, statByType={};
+let currentTab="dashboard";
+const STATE_LABELS={printing:"Impression",paused:"En pause",complete:"Terminé",standby:"Prêt",
+  idle:"Prêt",cancelled:"Annulé",error:"Erreur",offline:"Hors ligne",operational:"Prêt",ready:"Prêt",unknown:"—"};
+
+function fmtTime(s){if(s==null)return"—";s=Math.round(s);const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);
+  return h>0?h+"h"+String(m).padStart(2,"0"):m+" min";}
+function esc(s){return(s||"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+// Animation de nombre (compteur fluide)
+function animNum(el,to,suffix="°"){
+  const from=parseFloat(el.dataset.v||"0"); if(from===to){el.textContent=to+suffix;return;}
+  // Micro-variation (±1.5°) ou mode perf : on écrit direct, pas de boucle rAF
+  if(Math.abs(to-from)<1.5
+     ||document.body.classList.contains("anim-none")
+     ||document.body.classList.contains("anim-reduced")){
+    el.dataset.v=to; el.textContent=to+suffix; return;}
+  const t0=performance.now(),dur=450;
+  function step(t){const k=Math.min(1,(t-t0)/dur),e=1-Math.pow(1-k,3),v=from+(to-from)*e;
+    el.textContent=(Math.round(v*10)/10)+suffix; if(k<1)requestAnimationFrame(step); else el.dataset.v=to;}
+  el.dataset.v=to; requestAnimationFrame(step);
+}
+
+async function loadPrinters(){
+  const list=await (await fetch("/api/printers")).json();
+  allPrinters=list;
+  const grid=document.getElementById("grid");
+  Object.keys(cards).forEach(id=>{if(!list.find(p=>p.id===id)){cards[id].remove();delete cards[id];delete charts[id];}});
+  if(!list.length){
+    if(!grid.querySelector(".empty-state"))
+      grid.innerHTML='<div class="empty-state"><div class="big">🖨️</div><h3>Aucune imprimante</h3><p>Clique sur « + Ajouter une imprimante » pour démarrer.</p></div>';
+    return;
+  }
+  const es=grid.querySelector(".empty-state"); if(es)es.remove();
+  list.forEach((p,i)=>{if(!cards[p.id])createCard(p,i);});
+  applyOrder();
+}
+
+function createCard(p,i){
+  const el=document.createElement("div");
+  el.className="card"; el.style.animationDelay=(i*0.08)+"s";
+  el.innerHTML=`
+    <div class="card-head">
+      <span class="title"><span class="drag-handle" title="Glisser pour réordonner">⠿</span> ${esc(p.name)} <span class="type-chip">${p.type||"?"}</span></span>
+      <span style="display:flex;align-items:center;gap:6px">
+        <span class="pill" id="pill-${p.id}"><span class="led"></span><span class="st">…</span></span>
+        <span class="cfg-wrap">
+          <button class="card-cfg" title="Personnaliser la carte" onclick="toggleCardMenu('${p.id}')">⋯</button>
+          <div class="cfg-menu" id="cfg-${p.id}">
+            <label class="chk"><input type="checkbox" data-w="webcam" onchange="setWidget('${p.id}','webcam',this.checked)"> Webcam</label>
+            <label class="chk"><input type="checkbox" data-w="chart" onchange="setWidget('${p.id}','chart',this.checked)"> Graphe temp.</label>
+            ${p.type==="moonraker"?`<label class="chk"><input type="checkbox" data-w="controls" onchange="setWidget('${p.id}','controls',this.checked)"> Contrôles</label>
+            <label class="chk"><input type="checkbox" data-w="health" onchange="setWidget('${p.id}','health',this.checked)"> Santé machine</label>`:""}
+          </div>
+        </span>
+      </span>
+    </div>
+    <div class="webcam" id="wc-${p.id}">
+      <img id="cam-${p.id}" alt="" onload="document.getElementById('scan-${p.id}').style.display=''"
+        onerror="this.style.display='none';const w=document.getElementById('wc-${p.id}');w.querySelector('.scan').style.display='none';if(!w.dataset.msg){w.dataset.msg=1;w.insertAdjacentText('beforeend','Pas de flux webcam')}">
+      <div class="scan" id="scan-${p.id}" style="display:none"></div>
+    </div>
+    <div class="body">
+      <div class="prog-zone">
+        <div class="ring">
+          <svg width="88" height="88"><circle class="track" cx="44" cy="44" r="${RING_R}"/>
+            <circle class="fill" id="ring-${p.id}" cx="44" cy="44" r="${RING_R}"
+              stroke-dasharray="${RING_C}" stroke-dashoffset="${RING_C}"/></svg>
+          <div class="pct" id="pct-${p.id}">0%</div>
+        </div>
+        <div class="prog-info">
+          <div class="filename empty" id="file-${p.id}">En attente…</div>
+          <div class="eta">⏱ restant : <b id="eta-${p.id}">—</b></div>
+        </div>
+      </div>
+      <div class="temps">
+        <div class="temp extruder"><div class="lbl"><span class="ico"></span>Buse</div>
+          <div class="val num" id="te-${p.id}">—</div><div class="tgt" id="tge-${p.id}"></div><div class="heat" id="he-${p.id}"></div></div>
+        <div class="temp bed"><div class="lbl"><span class="ico"></span>Plateau</div>
+          <div class="val num" id="tb-${p.id}">—</div><div class="tgt" id="tgb-${p.id}"></div><div class="heat" id="hb-${p.id}"></div></div>
+        <div class="temp chamber" id="cb-${p.id}" style="display:none"><div class="lbl"><span class="ico"></span>Chambre</div>
+          <div class="val num" id="tc-${p.id}">—</div><div class="tgt" id="tgc-${p.id}"></div><div class="heat" id="hc-${p.id}"></div></div>
+      </div>
+      ${p.type==="moonraker"?`
+      <div class="health" id="health-${p.id}">
+        <div class="health-grid">
+          <div class="hstat"><span>CPU</span><b id="cpu-${p.id}">—</b></div>
+          <div class="hstat"><span>CPU °C</span><b id="cput-${p.id}">—</b></div>
+          <div class="hstat"><span>RAM</span><b id="ram-${p.id}">—</b></div>
+          <div class="hstat"><span>Uptime</span><b id="up-${p.id}">—</b></div>
+        </div>
+        <div class="sensors" id="sens-${p.id}"></div>
+      </div>`:""}
+      <div class="chart-box"><canvas id="chart-${p.id}"></canvas></div>
+      ${p.type==="moonraker"?`
+      <div class="controls">
+        <button class="ctrl" id="pause-${p.id}" onclick="control('${p.id}','pause')">⏸ Pause</button>
+        <button class="ctrl" id="resume-${p.id}" onclick="control('${p.id}','resume')" style="display:none">▶ Reprendre</button>
+        <button class="ctrl danger" id="cancel-${p.id}" onclick="control('${p.id}','cancel',null,true)">✕ Annuler</button>
+      </div>
+      <div class="controls">
+        <select class="ctrl-select" id="ph-${p.id}" onchange="if(this.value){control('${p.id}','preheat',this.value);this.value=''}">
+          <option value="">🔥 Préchauffe…</option><option>PLA</option><option>PETG</option><option>ABS</option>
+        </select>
+        <button class="ctrl" onclick="control('${p.id}','cooldown')">❄ Refroidir</button>
+        <button class="ctrl estop danger" onclick="control('${p.id}','estop',null,true)">🛑 Arrêt</button>
+      </div>`:""}
+    </div>
+    <div class="card-foot"><button onclick="removePrinter('${p.id}','${esc(p.name)}')">✕ Supprimer</button></div>`;
+  document.getElementById("grid").appendChild(el);
+  cards[p.id]=el;
+  setupDnd(el,p.id);
+  applyCardWidgets(p.id);
+  document.getElementById("cam-"+p.id).src="/api/webcam/"+p.id;
+
+  history[p.id]={extruder:[],bed:[],chamber:[],labels:[]};
+  charts[p.id]=new Chart(el.querySelector(`#chart-${p.id}`),{
+    type:"line",
+    data:{labels:[],datasets:[
+      mkDs("Buse","#ff6b6b"),mkDs("Plateau","#ff9f43"),mkDs("Chambre","#ffd36b",true)]},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:400},
+      plugins:{legend:{labels:{color:"#828aa0",boxWidth:9,font:{size:10,family:"Space Grotesk"},usePointStyle:true,pointStyle:"circle"}}},
+      scales:{x:{display:false},y:{ticks:{color:"#828aa0",font:{size:10}},grid:{color:"rgba(255,255,255,.05)"}}}}
+  });
+}
+function mkDs(label,color,hidden){
+  return {label,data:[],borderColor:color,backgroundColor:color+"22",borderWidth:2,
+    pointRadius:0,tension:.35,fill:true,hidden:!!hidden};
+}
+
+async function poll(){
+  // Onglet navigateur en arrière-plan : on ne sollicite rien (économie CPU + réseau)
+  if(document.hidden)return;
+  await Promise.all(Object.keys(cards).map(async id=>{
+    try{const r=await fetch("/api/status/"+id);if(r.ok){const s=await r.json();updateCard(id,s);updatePanelWidgets(id,s);}}catch(e){}
+  }));
+}
+
+function updateCard(id,s){
+  const pill=document.getElementById("pill-"+id); if(!pill)return;
+  const st=s.error?"error":(s.state||"offline");
+  pill.className="pill "+(!s.online?"":(st==="printing"?"printing":(st==="error"?"error":"online")));
+  pill.querySelector(".st").textContent=s.error?"Erreur":(STATE_LABELS[st]||st);
+  updateControls(id,st,s.online);
+
+  const f=document.getElementById("file-"+id);
+  if(s.filename){f.textContent=s.filename;f.className="filename";}
+  else{f.textContent=s.error||"En attente…";f.className="filename empty";}
+
+  const pct=Math.round((s.progress||0)*100);
+  document.getElementById("pct-"+id).textContent=pct+"%";
+  document.getElementById("ring-"+id).style.strokeDashoffset=RING_C*(1-(s.progress||0));
+  document.getElementById("eta-"+id).textContent=fmtTime(s.time_left);
+
+  const t=s.temps||{};
+  setTemp(id,"e",t.extruder); setTemp(id,"b",t.bed);
+  const cb=document.getElementById("cb-"+id);
+  if(t.chamber){cb.style.display="";setTemp(id,"c",t.chamber);}else cb.style.display="none";
+
+  updateHealth(id,s.system||{},s.sensors||{});
+
+  const h=history[id];
+  h.labels.push(""); h.extruder.push(t.extruder?t.extruder.actual:null);
+  h.bed.push(t.bed?t.bed.actual:null); h.chamber.push(t.chamber?t.chamber.actual:null);
+  [h.labels,h.extruder,h.bed,h.chamber].forEach(a=>{while(a.length>MAX_POINTS)a.shift();});
+  const c=charts[id];
+  c.data.labels=h.labels; c.data.datasets[0].data=h.extruder;
+  c.data.datasets[1].data=h.bed; c.data.datasets[2].data=h.chamber;
+  c.data.datasets[2].hidden=!t.chamber;
+  // Ne redessine le canvas que si le tableau de bord est visible (gros gain CPU)
+  if(currentTab==="dashboard") c.update("none");
+}
+
+function setTemp(id,k,o){
+  const v={e:"te-",b:"tb-",c:"tc-"}[k],g={e:"tge-",b:"tgb-",c:"tgc-"}[k],ht={e:"he-",b:"hb-",c:"hc-"}[k];
+  const ve=document.getElementById(v+id);
+  if(!o){ve.textContent="—";document.getElementById(g+id).textContent="";return;}
+  animNum(ve,o.actual);
+  document.getElementById(g+id).textContent=o.target>0?"cible "+o.target+"°":"";
+  // barre de chauffe : ratio actuel/cible
+  const ratio=o.target>0?Math.min(1,o.actual/o.target):(o.actual>40?Math.min(1,o.actual/250):0);
+  document.getElementById(ht+id).style.transform="scaleX("+ratio+")";
+}
+
+function openModal(){document.getElementById("overlay").classList.add("show");setTimeout(()=>document.getElementById("f-host").focus(),200);}
+function closeModal(){document.getElementById("overlay").classList.remove("show");document.getElementById("f-err").textContent="";
+  ["f-host","f-name","f-webcam","f-apikey"].forEach(i=>document.getElementById(i).value="");}
+
+async function addPrinter(){
+  const btn=document.getElementById("f-submit"),err=document.getElementById("f-err");
+  err.textContent="";
+  const payload={host:val("f-host"),name:val("f-name"),webcam:val("f-webcam"),apikey:val("f-apikey")};
+  if(!payload.host.trim()){err.textContent="Entre une adresse IP.";return;}
+  btn.disabled=true;btn.innerHTML='<span class="spin"></span>Détection…';
+  try{
+    const r=await fetch("/api/printers",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+    const d=await r.json();
+    if(!r.ok){err.textContent=d.error||"Erreur";return;}
+    closeModal();await loadPrinters();
+  }catch(e){err.textContent="Erreur réseau.";}
+  finally{btn.disabled=false;btn.innerHTML="Détecter &amp; ajouter";}
+}
+function val(id){return document.getElementById(id).value;}
+
+async function removePrinter(id,name){
+  if(!confirm("Supprimer « "+name+" » ?"))return;
+  await fetch("/api/printers/"+id,{method:"DELETE"});await loadPrinters();
+}
+
+// ---- Onglets ----
+function switchTab(name){
+  currentTab=name;
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.tab===name));
+  document.getElementById("view-dashboard").style.display=name==="dashboard"?"":"none";
+  document.getElementById("view-stats").style.display=name==="stats"?"":"none";
+  document.getElementById("view-panels").style.display=name==="panels"?"":"none";
+  moveIndicator();
+  if(name==="stats")loadStats();
+  if(name==="dashboard"){
+    // Redessine les graphes restés figés pendant qu'on était ailleurs
+    Object.values(charts).forEach(c=>c.update("none"));
+  }
+  if(name==="panels"){
+    // requestAnimationFrame : attend que le navigateur ait calculé les dimensions
+    requestAnimationFrame(()=>{
+      renderPanelGrid();
+      Object.entries(lastStatus).forEach(([pid,s])=>updatePanelWidgets(pid,s));
+      Object.values(panelCharts).forEach(c=>c.update("none"));
+    });
+  }
+}
+function moveIndicator(){
+  const a=document.querySelector(".tab.active"),ind=document.getElementById("tab-ind");
+  if(!a)return; ind.style.left=a.offsetLeft+"px"; ind.style.width=a.offsetWidth+"px";
+}
+
+// ---- Formatteurs stats ----
+function fmtDur(s){if(!s)return"—";s=Math.round(s);const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);
+  if(h>=24){const d=Math.floor(h/24);return d+"j "+(h%24)+"h";}return h>0?h+"h "+String(m).padStart(2,"0"):m+" min";}
+function fmtFil(mm){if(!mm)return"0 m";const m=mm/1000;return m>=1000?(m/1000).toFixed(2)+" km":Math.round(m)+" m";}
+function fmtDate(ts){if(!ts)return"—";const d=new Date(ts*1000);
+  return d.toLocaleDateString("fr-FR",{day:"2-digit",month:"short"})+" "+d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});}
+const ST_LBL={completed:"Terminé",cancelled:"Annulé",error:"Erreur",in_progress:"En cours",
+  interrupted:"Interrompu",klippy_shutdown:"Arrêt Klipper",klippy_disconnect:"Déconnecté"};
+
+async function loadStats(){
+  const printers=await (await fetch("/api/printers")).json();
+  const box=document.getElementById("stats");
+  if(!printers.length){box.innerHTML='<div class="stat-empty">Aucune imprimante à analyser.</div>';return;}
+  box.innerHTML="";
+  for(const p of printers){
+    const block=document.createElement("div");block.className="stat-block";
+    block.innerHTML=`
+      <div class="stat-head block-head">
+        <span>${esc(p.name)} <span class="type-chip">${p.type||"?"}</span></span>
+        <button class="csv-btn" onclick="window.location='/api/stats/${p.id}/csv'">⬇ Export CSV</button>
+      </div>
+      <div class="kpis" id="kpi-${p.id}"></div>
+      <div class="panels">
+        <div class="panel"><h4>Activité (30 derniers jours)</h4><div class="activity-box"><canvas id="act-${p.id}"></canvas></div></div>
+        <div class="panel"><h4>Filament par type</h4><div class="ftype" id="ft-${p.id}"></div>
+          <div class="cost"><label>Prix €/kg</label><input type="number" id="price-${p.id}" value="25" min="0" oninput="recost('${p.id}')">
+            <span class="total" id="cost-${p.id}">—</span></div></div>
+      </div>
+      <div class="jobs-title">Impressions récentes</div>
+      <div class="jobs" id="jobs-${p.id}"><div class="stat-empty">Chargement…</div></div>`;
+    box.appendChild(block);
+    try{renderStats(p,await (await fetch("/api/stats/"+p.id)).json());}
+    catch(e){document.getElementById("jobs-"+p.id).innerHTML='<div class="stat-empty">Erreur de chargement.</div>';}
+  }
+}
+
+function renderStats(p,s){
+  const t=s.totals||{};
+  if(!s.supported){
+    document.getElementById("kpi-"+p.id).innerHTML='<div class="stat-empty">Statistiques non disponibles pour ce protocole.</div>';
+    document.getElementById("jobs-"+p.id).innerHTML="";return;
+  }
+  const rate=s.success_rate,C=2*Math.PI*24,off=rate==null?C:C*(1-rate/100);
+  document.getElementById("kpi-"+p.id).innerHTML=`
+    <div class="kpi k-jobs"><div class="klbl">Impressions</div><div class="kval">${t.total_jobs||0}</div><div class="ksub">total cumulé</div></div>
+    <div class="kpi k-time"><div class="klbl">Temps d'impression</div><div class="kval">${fmtDur(t.total_time)}</div><div class="ksub">toutes impressions</div></div>
+    <div class="kpi k-fil"><div class="klbl">Filament</div><div class="kval">${fmtFil(t.total_filament)}</div><div class="ksub">consommé au total</div></div>
+    <div class="kpi k-rate">
+      <div class="ring-rate"><svg width="54" height="54"><circle class="t" cx="27" cy="27" r="24"/><circle class="f" cx="27" cy="27" r="24" stroke-dasharray="${C}" stroke-dashoffset="${C}"/></svg></div>
+      <div class="klbl">Taux de réussite</div><div class="kval">${rate==null?"—":rate+"%"}</div><div class="ksub">25 derniers jobs</div></div>
+    <div class="kpi k-long"><div class="klbl">Plus longue</div><div class="kval">${fmtDur(t.longest_print)}</div><div class="ksub">record</div></div>`;
+  requestAnimationFrame(()=>{const f=document.querySelector("#kpi-"+p.id+" .ring-rate .f");if(f)f.style.strokeDashoffset=off;});
+
+  renderActivity(p,s.activity||[]);
+  renderFilament(p,s.by_type||{});
+
+  const jb=document.getElementById("jobs-"+p.id);
+  statJobs[p.id]=s.jobs||[];
+  if(!s.jobs.length){jb.innerHTML='<div class="stat-empty">Aucune impression enregistrée.</div>';return;}
+  jb.innerHTML="";
+  s.jobs.forEach((j,i)=>{
+    const el=document.createElement("div");el.className="job";el.style.animationDelay=(i*0.04)+"s";
+    el.onclick=()=>openJob(p,i);
+    const thumb=j.thumb
+      ?`<img class="thumb" src="/api/thumb/${p.id}?path=${encodeURIComponent(j.thumb)}" onerror="this.style.visibility='hidden'">`
+      :`<div class="thumb"></div>`;
+    const meta=["<span>"+fmtDate(j.end_time)+"</span>"];
+    if(j.duration)meta.push("<span>⏱ "+fmtDur(j.duration)+"</span>");
+    if(j.weight)meta.push("<span>"+j.weight.toFixed(1)+" g</span>");
+    if(j.filament_type)meta.push("<span>"+esc(j.filament_type)+"</span>");
+    el.innerHTML=`${thumb}<div class="jmain"><div class="jname">${esc(j.filename||"—")}</div>
+      <div class="jmeta">${meta.join("")}</div></div>
+      <span class="jbadge ${j.status}">${ST_LBL[j.status]||j.status}</span>`;
+    jb.appendChild(el);
+  });
+}
+
+// Graphe d'activite (barres : impressions par jour)
+function renderActivity(p,act){
+  const ctx=document.getElementById("act-"+p.id); if(!ctx)return;
+  if(statCharts[p.id])statCharts[p.id].destroy();
+  const labels=act.map(a=>{const d=new Date(a.date*1000);return d.toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"});});
+  statCharts[p.id]=new Chart(ctx,{type:"bar",
+    data:{labels,datasets:[{label:"Impressions",data:act.map(a=>a.count),
+      backgroundColor:"rgba(108,140,255,.6)",borderRadius:4,maxBarThickness:14}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:600},
+      plugins:{legend:{display:false},tooltip:{callbacks:{afterLabel:c=>"dont "+act[c.dataIndex].completed+" réussies"}}},
+      scales:{x:{ticks:{color:"#828aa0",font:{size:9},maxRotation:0,autoSkip:true,maxTicksLimit:8},grid:{display:false}},
+        y:{beginAtZero:true,ticks:{color:"#828aa0",font:{size:9},precision:0},grid:{color:"rgba(128,128,128,.12)"}}}}});
+}
+
+// Repartition filament par type + cout
+const FT_COLORS={PLA:"#34e0a1",PETG:"#6c8cff",ABS:"#ff9f43",ASA:"#ff6b6b",TPU:"#a06bff",PA:"#ffd36b",PC:"#00d4ff",Inconnu:"#828aa0"};
+function ftColor(t){return FT_COLORS[t]||FT_COLORS[(t||"").toUpperCase()]||"#828aa0";}
+function renderFilament(p,byType){
+  const box=document.getElementById("ft-"+p.id); if(!box)return;
+  statByType[p.id]=byType;
+  const entries=Object.entries(byType).sort((a,b)=>b[1]-a[1]);
+  if(!entries.length){box.innerHTML='<div class="stat-empty" style="padding:14px">Aucune donnée.</div>';recost(p.id);return;}
+  const max=entries[0][1];
+  box.innerHTML=entries.map(([t,g])=>{
+    const kg=g/1000, disp=kg>=1?kg.toFixed(2)+" kg":Math.round(g)+" g";
+    return `<div class="ftype-row"><div class="ft-top"><span>${esc(t)}</span><b>${disp}</b></div>
+      <div class="ft-bar"><div style="background:${ftColor(t)};width:0" data-w="${Math.round(g/max*100)}"></div></div></div>`;
+  }).join("");
+  requestAnimationFrame(()=>box.querySelectorAll(".ft-bar>div").forEach(b=>b.style.width=b.dataset.w+"%"));
+  recost(p.id);
+}
+function recost(id){
+  const price=parseFloat(document.getElementById("price-"+id).value)||0;
+  const total=Object.values(statByType[id]||{}).reduce((a,g)=>a+g,0)/1000*price;
+  document.getElementById("cost-"+id).textContent=total>0?"≈ "+total.toFixed(2)+" €":"—";
+}
+
+// Modale detail d'un job
+function openJob(p,i){
+  const j=(statJobs[p.id]||[])[i]; if(!j)return;
+  document.getElementById("jd-name").textContent=j.filename||"Impression";
+  const sd=document.getElementById("jd-status");
+  sd.innerHTML=`<span class="jbadge ${j.status}">${ST_LBL[j.status]||j.status}</span> &nbsp; ${fmtDate(j.end_time)}`;
+  const th=document.getElementById("jd-thumb");
+  th.style.visibility=""; th.src=j.thumb?("/api/thumb/"+p.id+"?path="+encodeURIComponent(j.thumb)):"";
+  if(!j.thumb)th.style.visibility="hidden";
+  const m=j.meta||{}, rows=[];
+  const add=(k,v)=>{if(v!==undefined&&v!==null&&v!=="")rows.push(`<div class="jd-row"><span>${k}</span><b>${v}</b></div>`);};
+  add("Durée",fmtDur(j.duration));
+  if(m.est_time)add("Estimée (slicer)",fmtDur(m.est_time));
+  add("Filament",j.weight?j.weight.toFixed(1)+" g":null);
+  if(m.length)add("Longueur",(m.length/1000).toFixed(2)+" m");
+  add("Type",j.filament_type);
+  if(m.layers)add("Couches",m.layers);
+  if(m.height)add("Hauteur",m.height+" mm");
+  if(m.layer_height)add("Épaisseur couche",m.layer_height+" mm");
+  if(m.nozzle)add("Buse",m.nozzle+" mm");
+  if(m.slicer)add("Slicer",m.slicer+(m.slicer_version?" "+m.slicer_version:""));
+  document.getElementById("jd-rows").innerHTML=rows.join("")||'<div class="stat-empty">Pas de métadonnées.</div>';
+  document.getElementById("jd-overlay").classList.add("show");
+}
+function closeJob(){document.getElementById("jd-overlay").classList.remove("show");}
+
+// ---- Contrôles imprimante ----
+function updateControls(id,state,online){
+  const pause=document.getElementById("pause-"+id);
+  if(!pause)return; // pas de contrôles (OctoPrint)
+  const resume=document.getElementById("resume-"+id),cancel=document.getElementById("cancel-"+id);
+  const printing=state==="printing",paused=state==="paused";
+  pause.style.display=paused?"none":"";
+  resume.style.display=paused?"":"none";
+  pause.disabled=!online||!printing;
+  cancel.disabled=!online||!(printing||paused);
+  const ph=document.getElementById("ph-"+id); if(ph)ph.disabled=!online;
+}
+
+async function control(id,action,material,confirmNeeded){
+  const verbs={cancel:"annuler l'impression en cours",estop:"déclencher l'ARRÊT D'URGENCE"};
+  if(confirmNeeded && !confirm("Confirmer : "+verbs[action]+" ?"))return;
+  try{
+    const r=await fetch("/api/control/"+id,{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({action,material})});
+    const d=await r.json();
+    if(!r.ok){toast(d.error||"Échec de la commande",true);return;}
+    const msg={pause:"⏸ Mise en pause",resume:"▶ Reprise",cancel:"Impression annulée",
+      estop:"🛑 Arrêt d'urgence envoyé",cooldown:"❄ Chauffes coupées",preheat:"🔥 Préchauffe "+(material||"")};
+    toast(msg[action]||"Commande envoyée");
+    setTimeout(poll,600);
+  }catch(e){toast("Erreur réseau",true);}
+}
+
+function toast(msg,isErr){
+  const t=document.getElementById("toast");t.textContent=msg;
+  t.className="toast show"+(isErr?" err":"");
+  clearTimeout(t._t);t._t=setTimeout(()=>{t.className="toast"+(isErr?" err":"");},2900);
+}
+
+// ---- Santé machine ----
+function updateHealth(id,sys,sensors){
+  const cpu=document.getElementById("cpu-"+id); if(!cpu)return;
+  cpu.textContent=sys.cpu!=null?sys.cpu+" %":"—";
+  document.getElementById("cput-"+id).textContent=sys.cpu_temp?sys.cpu_temp+"°":"—";
+  document.getElementById("ram-"+id).textContent=sys.mem_pct!=null?sys.mem_pct+" %":"—";
+  document.getElementById("up-"+id).textContent=sys.uptime?fmtDur(sys.uptime):"—";
+  document.getElementById("sens-"+id).innerHTML=
+    Object.entries(sensors).map(([k,v])=>`<span class="schip">${esc(k)} <b>${v}°</b></span>`).join("");
+}
+
+// ---- Mode compact ----
+function toggleCompact(){
+  const on=!document.body.classList.contains("compact");
+  document.body.classList.toggle("compact",on);
+  localStorage.setItem("pw-compact",on?"1":"0");
+  document.getElementById("compact-btn").style.color=on?"var(--accent)":"";
+}
+
+// ---- Menu carte + visibilité des widgets ----
+function toggleCardMenu(id){
+  const m=document.getElementById("cfg-"+id),open=m.classList.contains("show");
+  document.querySelectorAll(".cfg-menu.show").forEach(x=>x.classList.remove("show"));
+  if(!open)m.classList.add("show");
+}
+document.addEventListener("click",e=>{
+  if(!e.target.closest(".cfg-wrap"))document.querySelectorAll(".cfg-menu.show").forEach(x=>x.classList.remove("show"));
+});
+function setWidget(id,w,visible){
+  const all=JSON.parse(localStorage.getItem("pw-widgets")||"{}");
+  all[id]=all[id]||{}; all[id][w]=visible;
+  localStorage.setItem("pw-widgets",JSON.stringify(all));
+  cards[id].classList.toggle("hide-"+w,!visible);
+}
+function applyCardWidgets(id){
+  let all={}; try{all=JSON.parse(localStorage.getItem("pw-widgets")||"{}");}catch(e){}
+  const w=all[id]||{},card=cards[id];
+  ["webcam","chart","controls","health"].forEach(k=>{
+    const vis=w[k]!==false; // visible par défaut
+    card.classList.toggle("hide-"+k,!vis);
+    const cb=card.querySelector('.cfg-menu input[data-w="'+k+'"]');
+    if(cb)cb.checked=vis;
+  });
+}
+
+// ---- Glisser-déposer (réordonner les cartes) ----
+let dragId=null;
+function setupDnd(el,id){
+  el.dataset.pid=id;
+  const handle=el.querySelector(".drag-handle");
+  handle.addEventListener("mousedown",()=>{el.draggable=true;});
+  handle.addEventListener("mouseup",()=>{el.draggable=false;});
+  el.addEventListener("dragstart",e=>{dragId=id;el.classList.add("dragging");e.dataTransfer.effectAllowed="move";});
+  el.addEventListener("dragend",()=>{el.classList.remove("dragging");el.draggable=false;
+    document.querySelectorAll(".drop-target").forEach(x=>x.classList.remove("drop-target"));saveOrder();});
+  el.addEventListener("dragover",e=>{e.preventDefault();
+    if(dragId&&dragId!==id){
+      const dragged=cards[dragId],rect=el.getBoundingClientRect();
+      const after=e.clientY>rect.top+rect.height/2;
+      el.parentNode.insertBefore(dragged,after?el.nextSibling:el);}});
+}
+function saveOrder(){
+  const ids=[...document.getElementById("grid").children].map(c=>c.dataset.pid).filter(Boolean);
+  localStorage.setItem("pw-order",JSON.stringify(ids));
+}
+function applyOrder(){
+  let order=[]; try{order=JSON.parse(localStorage.getItem("pw-order")||"[]");}catch(e){}
+  const grid=document.getElementById("grid"),ids=Object.keys(cards);
+  const seq=order.filter(id=>cards[id]).concat(ids.filter(id=>!order.includes(id)));
+  seq.forEach(id=>grid.appendChild(cards[id]));
+}
+
+// ---- Apparence ----
+function applyAppearance(a){
+  if(!a)return;
+  if(a.accent)document.documentElement.style.setProperty("--accent",a.accent);
+  if(a.accent2)document.documentElement.style.setProperty("--accent2",a.accent2);
+  const name=a.name||"PrintWatch";
+  document.getElementById("brand-name").textContent=name;
+  document.title=name+" — Monitoring 3D";
+  const logo=document.getElementById("brand-logo");
+  if(a.logo){
+    logo.innerHTML=/^(https?:|\/)/.test(a.logo)
+      ?'<img src="'+a.logo.replace(/"/g,"")+'" style="width:100%;height:100%;object-fit:cover;border-radius:10px">'
+      :'<span style="font-size:18px">'+esc(a.logo)+'</span>';
+  }
+  // Classes de personnalisation sur <body>
+  const b=document.body;
+  b.classList.remove("anim-full","anim-reduced","anim-none","bg-color","bg-subtle","bg-flat",
+    "font-rounded","font-system","font-mono-ui","radius-normal","radius-sharp","radius-round","dense");
+  b.classList.add("anim-"+(a.anim||"full"));
+  b.classList.add("bg-"+(a.bg||"color"));
+  b.classList.add("font-"+(a.font||"rounded"));
+  b.classList.add("radius-"+(a.radius||"normal"));
+  if(a.density==="dense")b.classList.add("dense");
+}
+
+// ---- Réglages / alertes Discord ----
+async function openSettings(){
+  document.getElementById("set-overlay").classList.add("show");
+  document.getElementById("set-err").textContent="";
+  try{
+    const s=await (await fetch("/api/settings")).json();
+    document.getElementById("set-webhook").value=s.discord_webhook||"";
+    document.getElementById("al-complete").checked=!!(s.alerts&&s.alerts.complete);
+    document.getElementById("al-error").checked=!!(s.alerts&&s.alerts.error);
+    document.getElementById("al-offline").checked=!!(s.alerts&&s.alerts.offline);
+    const a=s.appearance||{};
+    document.getElementById("set-name").value=a.name||"";
+    document.getElementById("set-logo").value=a.logo||"";
+    document.getElementById("set-accent").value=a.accent||"#6c8cff";
+    document.getElementById("set-accent2").value=a.accent2||"#a06bff";
+    document.getElementById("set-anim").value=a.anim||"full";
+    document.getElementById("set-bg").value=a.bg||"color";
+    document.getElementById("set-font").value=a.font||"rounded";
+    document.getElementById("set-radius").value=a.radius||"normal";
+    document.getElementById("set-density").value=a.density||"comfort";
+    document.getElementById("set-theme").value=document.body.dataset.theme||"dark";
+    buildPresets(a.accent);
+  }catch(e){}
+}
+function closeSettings(){document.getElementById("set-overlay").classList.remove("show");}
+
+// Presets de couleurs rapides
+const COLOR_PRESETS=[
+  ["#6c8cff","#a06bff"],["#34e0a1","#00d4ff"],["#ff6b6b","#ff9f43"],
+  ["#a06bff","#ff6bd6"],["#ffce4d","#ff8c42"],["#00d4ff","#6c8cff"],["#3ecf7c","#7db8ff"]];
+function buildPresets(active){
+  const row=document.getElementById("preset-row");
+  row.innerHTML=COLOR_PRESETS.map(([a,b])=>
+    `<div class="preset${a===active?" active":""}" style="background:linear-gradient(135deg,${a},${b})"
+      onclick="pickPreset('${a}','${b}')"></div>`).join("");
+}
+function pickPreset(a,b){
+  document.getElementById("set-accent").value=a;
+  document.getElementById("set-accent2").value=b;
+  buildPresets(a); previewAppearance();
+}
+
+// Aperçu en direct : applique sans enregistrer
+function previewAppearance(){
+  applyAppearance(readAppearanceForm());
+  applyTheme(document.getElementById("set-theme").value);
+}
+function readAppearanceForm(){
+  return {name:document.getElementById("set-name").value.trim()||"PrintWatch",
+    logo:document.getElementById("set-logo").value.trim(),
+    accent:document.getElementById("set-accent").value,
+    accent2:document.getElementById("set-accent2").value,
+    anim:document.getElementById("set-anim").value,
+    bg:document.getElementById("set-bg").value,
+    font:document.getElementById("set-font").value,
+    radius:document.getElementById("set-radius").value,
+    density:document.getElementById("set-density").value};
+}
+async function saveSettings(){
+  const appearance=readAppearanceForm();
+  const payload={discord_webhook:document.getElementById("set-webhook").value,
+    alerts:{complete:document.getElementById("al-complete").checked,
+      error:document.getElementById("al-error").checked,
+      offline:document.getElementById("al-offline").checked},
+    appearance};
+  // Thème : mémorisé localement (préférence appareil)
+  const theme=document.getElementById("set-theme").value;
+  localStorage.setItem("pw-theme",theme); applyTheme(theme);
+  try{await fetch("/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+    applyAppearance(appearance);toast("Réglages enregistrés");closeSettings();}
+  catch(e){document.getElementById("set-err").textContent="Erreur d'enregistrement";}
+}
+async function testWebhook(){
+  const err=document.getElementById("set-err");err.textContent="";
+  try{
+    const r=await fetch("/api/settings/test",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({discord_webhook:document.getElementById("set-webhook").value})});
+    const d=await r.json();
+    if(r.ok)toast("🔔 Message test envoyé sur Discord");
+    else err.textContent=d.error||"Échec de l'envoi";
+  }catch(e){err.textContent="Erreur réseau";}
+}
+
+// =====================================================
+// PANEL BUILDER
+// =====================================================
+const COLS=12, CELL_H=90, PGAP=10;
+let panelWidgets=[], panelLayouts={}, activeLayout="", editMode=false;
+const panelCharts={}, panelHistory={};  // widgetId -> Chart / history arrays
+
+// ---- Constantes par type ----
+const WT_DEF={
+  progress:{colSpan:4,rowSpan:3,label:"Progression"},
+  temps:   {colSpan:4,rowSpan:2,label:"Températures"},
+  health:  {colSpan:4,rowSpan:3,label:"Santé machine"},
+  chart:   {colSpan:6,rowSpan:3,label:"Graphe"},
+  webcam:  {colSpan:6,rowSpan:4,label:"Webcam"},
+  controls:{colSpan:4,rowSpan:2,label:"Contrôles"},
+};
+
+// ---- Calcul de style positionnel ----
+function gridWidth(){
+  const grid=document.getElementById("panel-grid");
+  if(!grid) return 1100;
+  // getBoundingClientRect est 0 si le panneau est caché ou l'iframe trop étroite.
+  // On remonte la chaîne parente pour trouver une largeur fiable.
+  let w=grid.getBoundingClientRect().width;
+  if(w<=0) w=grid.offsetWidth;
+  if(w<=0) w=grid.parentElement?.getBoundingClientRect().width||0;
+  if(w<=0) w=document.documentElement.clientWidth-80;
+  return Math.max(w, 900); // minimum absolu : 900 px
+}
+function pwStyle(w){
+  const W=gridWidth();
+  const cellW=(W-PGAP*(COLS-1))/COLS;
+  const l=w.col*(cellW+PGAP), t=w.row*(CELL_H+PGAP);
+  const wi=w.colSpan*(cellW+PGAP)-PGAP, hi=w.rowSpan*(CELL_H+PGAP)-PGAP;
+  return {style:`left:${l.toFixed(1)}px;top:${t.toFixed(1)}px;width:${wi.toFixed(1)}px;height:${hi.toFixed(1)}px`,cellW};
+}
+
+function cellAt(mouseX,mouseY){
+  const grid=document.getElementById("panel-grid");
+  const rect=grid.getBoundingClientRect();
+  const W=rect.width; const cellW=(W-PGAP*(COLS-1))/COLS;
+  const col=Math.max(0,Math.min(COLS-1,Math.floor((mouseX-rect.left)/(cellW+PGAP))));
+  const row=Math.max(0,Math.floor((mouseY-rect.top)/(CELL_H+PGAP)));
+  return {col,row,cellW};
+}
+
+// ---- Rendu de la grille fantôme ----
+function renderGhostGrid(show){
+  const grid=document.getElementById("panel-grid");
+  grid.querySelectorAll(".pg-shadow-cell").forEach(e=>e.remove());
+  if(!show||!editMode)return;
+  const W=gridWidth();
+  const cellW=(W-PGAP*(COLS-1))/COLS;
+  for(let r=0;r<8;r++) for(let c=0;c<COLS;c++){
+    const el=document.createElement("div");
+    el.className="pg-shadow-cell";
+    const l=c*(cellW+PGAP),t=r*(CELL_H+PGAP);
+    el.style=`position:absolute;left:${l.toFixed(1)}px;top:${t.toFixed(1)}px;width:${cellW.toFixed(1)}px;height:${CELL_H}px;border-radius:8px;background:rgba(108,140,255,.04);border:1px dashed rgba(108,140,255,.12);pointer-events:none`;
+    grid.appendChild(el);
+  }
+}
+
+// ---- Rendu complet de la grille ----
+function renderPanelGrid(){
+  const grid=document.getElementById("panel-grid");
+  // Retire les anciens widgets (pas le ghost ni les cellules fantômes)
+  grid.querySelectorAll(".pw").forEach(e=>e.remove());
+  const maxRow=panelWidgets.reduce((m,w)=>Math.max(m,w.row+w.rowSpan),6);
+  grid.style.minHeight=(maxRow*(CELL_H+PGAP)+40)+"px";
+  panelWidgets.forEach(w=>grid.appendChild(createPW(w)));
+  renderGhostGrid(editMode);
+}
+
+// ---- Création d'un widget DOM ----
+function createPW(w){
+  const el=document.createElement("div");
+  el.className="pw"+(editMode?" edit-mode":"");
+  el.dataset.wid=w.id;
+  el.style.cssText=pwStyle(w).style;
+
+  const printer=allPrinters.find(p=>p.id===w.printer)||{name:"?",type:"?"};
+  el.innerHTML=`
+    <div class="pw-header">
+      ${editMode?`<span class="pw-drag-handle" title="Déplacer">⠿</span>`:""}
+      <span class="pw-title">${WT_DEF[w.type]?.label||w.type} — ${esc(printer.name)}</span>
+      ${editMode?`<button class="pw-del" onclick="removeWidget('${w.id}')">✕</button>`:""}
+    </div>
+    <div class="pw-body${w.type==="webcam"?" no-pad":""}" id="pwb-${w.id}"></div>
+    ${editMode?`<div class="pw-resize" title="Redimensionner">
+      <svg width="12" height="12"><polyline points="4,12 12,12 12,4" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+    </div>`:""}`;
+
+  buildWidgetBody(w,el.querySelector("#pwb-"+w.id));
+  if(editMode){ setupPWDrag(el,w); setupPWResize(el,w); }
+
+  // Applique le dernier statut connu
+  const s=lastStatus[w.printer];
+  if(s) updatePW(w.id,s);
+  return el;
+}
+
+// ---- Corps du widget (HTML initial) ----
+function buildWidgetBody(w,body){
+  if(!body)return;
+  switch(w.type){
+    case"progress":
+      body.innerHTML=`<div class="pw-progress">
+        <svg class="pw-ring-sm" width="72" height="72"><circle cx="36" cy="36" r="30" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="7" transform="rotate(-90,36,36)"/>
+          <circle id="pwr-${w.id}" cx="36" cy="36" r="30" fill="none" stroke="url(#grad)" stroke-width="7" stroke-linecap="round" transform="rotate(-90,36,36)"
+            stroke-dasharray="${2*Math.PI*30}" stroke-dashoffset="${2*Math.PI*30}"/></svg>
+        <div class="pw-pinfo"><div class="pw-pct" id="pwpct-${w.id}">0%</div>
+          <div class="pw-fname" id="pwfn-${w.id}">—</div>
+          <div class="pw-eta-s" id="pweta-${w.id}">restant : —</div></div></div>`;
+      break;
+    case"temps":
+      body.innerHTML=`<div class="pw-temps-grid">
+        <div class="pw-temp ext"><div class="lbl">Buse</div><div class="val" id="pwte-${w.id}">—</div><div class="tgt" id="pwtge-${w.id}"></div></div>
+        <div class="pw-temp bed"><div class="lbl">Plateau</div><div class="val" id="pwtb-${w.id}">—</div><div class="tgt" id="pwtgb-${w.id}"></div></div>
+        <div class="pw-temp cham" id="pwtcwrap-${w.id}"><div class="lbl">Chambre</div><div class="val" id="pwtc-${w.id}">—</div><div class="tgt" id="pwtgc-${w.id}"></div></div></div>`;
+      break;
+    case"health":
+      body.innerHTML=`<div class="pw-health-grid">
+        <div class="pw-hitem"><span>CPU</span><b id="pwcpu-${w.id}">—</b></div>
+        <div class="pw-hitem"><span>CPU °C</span><b id="pwcput-${w.id}">—</b></div>
+        <div class="pw-hitem"><span>RAM</span><b id="pwram-${w.id}">—</b></div>
+        <div class="pw-hitem"><span>Uptime</span><b id="pwup-${w.id}">—</b></div>
+      </div><div class="pw-sensors-row" id="pwsens-${w.id}"></div>`;
+      break;
+    case"chart":
+      body.style.position="relative";body.style.minHeight="100px";
+      body.innerHTML=`<div style="position:absolute;inset:0"><canvas id="pwcht-${w.id}"></canvas></div>`;
+      panelHistory[w.id]={ext:[],bed:[],cham:[],lbl:[]};
+      requestAnimationFrame(()=>{
+        const c=body.querySelector("canvas");
+        if(c) panelCharts[w.id]=new Chart(c,{type:"line",
+          data:{labels:[],datasets:[mkDs("Buse","#ff6b6b"),mkDs("Plateau","#ff9f43"),mkDs("Chambre","#ffd36b",true)]},
+          options:{responsive:true,maintainAspectRatio:false,animation:{duration:300},
+            plugins:{legend:{labels:{color:"#828aa0",boxWidth:8,font:{size:9}}}},
+            scales:{x:{display:false},y:{ticks:{color:"#828aa0",font:{size:9}},grid:{color:"rgba(255,255,255,.05)"}}}}});
+      });
+      break;
+    case"webcam":
+      body.innerHTML=`<div class="pw-webcam"><img src="/api/webcam/${w.printer}" onerror="this.style.display='none';this.nextSibling.style.display=''"><span style="display:none">Pas de flux webcam</span></div>`;
+      break;
+    case"controls":
+      body.innerHTML=`<div class="pw-ctrl-grid">
+        <button class="ctrl" onclick="control('${w.printer}','pause')">⏸ Pause</button>
+        <button class="ctrl" onclick="control('${w.printer}','resume')">▶ Reprendre</button>
+        <button class="ctrl danger" onclick="control('${w.printer}','cancel',null,true)">✕ Annuler</button>
+        <select class="ctrl-select" style="flex:1" onchange="if(this.value){control('${w.printer}','preheat',this.value);this.value=''}">
+          <option value="">🔥 Préchauffe…</option><option>PLA</option><option>PETG</option><option>ABS</option>
+        </select>
+        <button class="ctrl" onclick="control('${w.printer}','cooldown')">❄ Refroidir</button>
+        <button class="ctrl estop danger" onclick="control('${w.printer}','estop',null,true)">🛑 Arrêt</button>
+      </div>`;
+      break;
+  }
+}
+
+// ---- Mise à jour des widgets depuis le statut ----
+const lastStatus={};
+function updatePW(wid,s){
+  const w=panelWidgets.find(x=>x.id===wid); if(!w)return;
+  const t=s.temps||{}, sys=s.system||{}, sens=s.sensors||{};
+  switch(w.type){
+    case"progress":{
+      const p=s.progress||0, C=2*Math.PI*30;
+      const r=document.getElementById("pwr-"+wid); if(r)r.style.strokeDashoffset=C*(1-p);
+      const el=document.getElementById("pwpct-"+wid); if(el)el.textContent=Math.round(p*100)+"%";
+      const fn=document.getElementById("pwfn-"+wid); if(fn)fn.textContent=s.filename||"En attente…";
+      const eta=document.getElementById("pweta-"+wid); if(eta)eta.textContent="restant : "+fmtTime(s.time_left);
+      break;}
+    case"temps":{
+      const set=(sfx,obj,tgt)=>{
+        const v=document.getElementById("pwt"+sfx+"-"+wid); if(v)v.textContent=obj?(obj.actual+"°"):"—";
+        const g=document.getElementById("pwtg"+sfx+"-"+wid); if(g)g.textContent=(obj&&obj.target>0)?"→ "+obj.target+"°":"";
+      };
+      set("e",t.extruder,"e"); set("b",t.bed,"b"); set("c",t.chamber,"c");
+      const cw=document.getElementById("pwtcwrap-"+wid); if(cw)cw.style.display=t.chamber?"":"none";
+      break;}
+    case"health":{
+      const g=id=>document.getElementById(id);
+      if(g("pwcpu-"+wid))g("pwcpu-"+wid).textContent=sys.cpu!=null?sys.cpu+" %":"—";
+      if(g("pwcput-"+wid))g("pwcput-"+wid).textContent=sys.cpu_temp?sys.cpu_temp+"°":"—";
+      if(g("pwram-"+wid))g("pwram-"+wid).textContent=sys.mem_pct!=null?sys.mem_pct+" %":"—";
+      if(g("pwup-"+wid))g("pwup-"+wid).textContent=sys.uptime?fmtDur(sys.uptime):"—";
+      const sr=document.getElementById("pwsens-"+wid);
+      if(sr)sr.innerHTML=Object.entries(sens).map(([k,v])=>`<span class="schip">${esc(k)} <b>${v}°</b></span>`).join("");
+      break;}
+    case"chart":{
+      const ch=panelCharts[wid]; if(!ch)break;
+      const h=panelHistory[wid]; if(!h)break;
+      h.lbl.push(""); h.ext.push(t.extruder?.actual??null); h.bed.push(t.bed?.actual??null); h.cham.push(t.chamber?.actual??null);
+      [h.lbl,h.ext,h.bed,h.cham].forEach(a=>{while(a.length>MAX_POINTS)a.shift();});
+      ch.data.labels=h.lbl; ch.data.datasets[0].data=h.ext; ch.data.datasets[1].data=h.bed;
+      ch.data.datasets[2].data=h.cham; ch.data.datasets[2].hidden=!t.chamber;
+      if(currentTab==="panels") ch.update("none");
+      break;}
+  }
+}
+
+function updatePanelWidgets(pid,s){
+  lastStatus[pid]=s;
+  panelWidgets.filter(w=>w.printer===pid).forEach(w=>updatePW(w.id,s));
+}
+
+// ---- Drag (déplacer) ----
+function setupPWDrag(el,w){
+  const handle=el.querySelector(".pw-drag-handle"); if(!handle)return;
+  handle.addEventListener("mousedown",e=>{
+    e.preventDefault();
+    const {col:startCol,row:startRow,cellW}=cellAt(e.clientX,e.clientY);
+    const offC=startCol-w.col, offR=startRow-w.row;
+    el.classList.add("dragging");
+    document.getElementById("ghost-cell").style.display="none";
+
+    const mm=ev=>{
+      const {col,row,cellW}=cellAt(ev.clientX,ev.clientY);
+      const nc=Math.max(0,Math.min(COLS-w.colSpan,col-offC));
+      const nr=Math.max(0,row-offR);
+      const ghost=document.getElementById("ghost-cell");
+      const W=document.getElementById("panel-grid").getBoundingClientRect().width;
+      const cw=(W-PGAP*(COLS-1))/COLS;
+      ghost.style.display=""; ghost.style.cssText+=`;left:${nc*(cw+PGAP)}px;top:${nr*(CELL_H+PGAP)}px;width:${w.colSpan*(cw+PGAP)-PGAP}px;height:${w.rowSpan*(CELL_H+PGAP)-PGAP}px`;
+      el._pendingCol=nc; el._pendingRow=nr;
+    };
+    const mu=()=>{
+      el.classList.remove("dragging");
+      document.getElementById("ghost-cell").style.display="none";
+      if(el._pendingCol!==undefined){w.col=el._pendingCol;w.row=el._pendingRow;delete el._pendingCol;delete el._pendingRow;}
+      repositionPW(el,w);
+      const maxRow=panelWidgets.reduce((m,x)=>Math.max(m,x.row+x.rowSpan),6);
+      document.getElementById("panel-grid").style.minHeight=(maxRow*(CELL_H+PGAP)+40)+"px";
+      document.removeEventListener("mousemove",mm); document.removeEventListener("mouseup",mu);
+    };
+    document.addEventListener("mousemove",mm); document.addEventListener("mouseup",mu);
+  });
+}
+
+// ---- Resize ----
+function setupPWResize(el,w){
+  const handle=el.querySelector(".pw-resize"); if(!handle)return;
+  handle.addEventListener("mousedown",e=>{
+    e.preventDefault(); e.stopPropagation();
+    const startX=e.clientX, startY=e.clientY;
+    const startCS=w.colSpan, startRS=w.rowSpan;
+    const W=document.getElementById("panel-grid").getBoundingClientRect().width;
+    const cellW=(W-PGAP*(COLS-1))/COLS;
+
+    const mm=ev=>{
+      const dx=ev.clientX-startX, dy=ev.clientY-startY;
+      const dCols=Math.round(dx/(cellW+PGAP)), dRows=Math.round(dy/(CELL_H+PGAP));
+      w.colSpan=Math.max(2,Math.min(COLS-w.col,startCS+dCols));
+      w.rowSpan=Math.max(1,startRS+dRows);
+      repositionPW(el,w);
+    };
+    const mu=()=>{
+      const maxRow=panelWidgets.reduce((m,x)=>Math.max(m,x.row+x.rowSpan),6);
+      document.getElementById("panel-grid").style.minHeight=(maxRow*(CELL_H+PGAP)+40)+"px";
+      document.removeEventListener("mousemove",mm); document.removeEventListener("mouseup",mu);
+    };
+    document.addEventListener("mousemove",mm); document.addEventListener("mouseup",mu);
+  });
+}
+
+function repositionPW(el,w){
+  el.style.cssText=pwStyle(w).style;
+}
+
+// ---- Gestion layouts ----
+let allPrinters=[];
+
+async function loadLayouts(){
+  const r=await fetch("/api/layouts"); const d=await r.json();
+  panelLayouts=d.layouts||{}; activeLayout=d.active||"";
+  rebuildLayoutSelect();
+  if(activeLayout&&panelLayouts[activeLayout]){
+    panelWidgets=JSON.parse(JSON.stringify(panelLayouts[activeLayout]));
+    document.getElementById("layout-name").value=activeLayout;
+  }
+  // Ne pas renderPanelGrid() ici : le panneau est encore caché au démarrage.
+  // switchTab('panels') s'en chargera avec les bonnes dimensions.
+}
+
+function rebuildLayoutSelect(){
+  const sel=document.getElementById("layout-select");
+  sel.innerHTML='<option value="">— nouveau —</option>';
+  Object.keys(panelLayouts).forEach(n=>{
+    const o=document.createElement("option");o.value=n;o.textContent=n;
+    if(n===activeLayout)o.selected=true;
+    sel.appendChild(o);
+  });
+}
+
+function switchLayout(name){
+  if(!name){panelWidgets=[];document.getElementById("layout-name").value="";renderPanelGrid();return;}
+  activeLayout=name;
+  panelWidgets=JSON.parse(JSON.stringify(panelLayouts[name]||[]));
+  document.getElementById("layout-name").value=name;
+  fetch("/api/layouts/active",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})});
+  renderPanelGrid();
+  // Refresh all widgets with last known status
+  Object.entries(lastStatus).forEach(([pid,s])=>updatePanelWidgets(pid,s));
+}
+
+async function saveCurrentLayout(){
+  const name=document.getElementById("layout-name").value.trim();
+  if(!name){toast("Entre un nom pour ce layout",true);return;}
+  await fetch("/api/layouts",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({name,widgets:panelWidgets})});
+  panelLayouts[name]=JSON.parse(JSON.stringify(panelWidgets));
+  activeLayout=name; rebuildLayoutSelect();
+  toast("Layout « "+name+" » enregistré");
+}
+
+async function deleteCurrentLayout(){
+  const name=activeLayout||document.getElementById("layout-name").value.trim();
+  if(!name||!panelLayouts[name]){toast("Aucun layout à supprimer",true);return;}
+  if(!confirm("Supprimer le layout « "+name+" » ?"))return;
+  await fetch("/api/layouts/"+encodeURIComponent(name),{method:"DELETE"});
+  delete panelLayouts[name];
+  activeLayout=""; panelWidgets=[]; rebuildLayoutSelect();
+  document.getElementById("layout-name").value="";
+  document.getElementById("layout-select").value="";
+  renderPanelGrid(); toast("Layout supprimé");
+}
+
+// ---- Mode édition ----
+function toggleEditMode(){
+  editMode=!editMode;
+  document.getElementById("edit-btn").classList.toggle("active",editMode);
+  renderPanelGrid();
+}
+
+// ---- Picker ----
+function openWidgetPicker(){
+  const sel=document.getElementById("wp-printer");
+  sel.innerHTML=allPrinters.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join("");
+  document.getElementById("wp-overlay").classList.add("show");
+}
+function closeWidgetPicker(){document.getElementById("wp-overlay").classList.remove("show");}
+
+function addWidget(type){
+  const pid=document.getElementById("wp-printer").value;
+  if(!pid){toast("Sélectionne une imprimante",true);return;}
+  const def=WT_DEF[type]||{colSpan:4,rowSpan:3};
+  // Trouve la première position libre
+  let row=0, col=0;
+  while(panelWidgets.some(w=>overlaps({col,row,...def},w))) {
+    col+=def.colSpan; if(col+def.colSpan>COLS){col=0;row++;}
+    if(row>20)break;
+  }
+  const w={id:"w"+Date.now().toString(36)+Math.random().toString(36).slice(2,5),
+    type,printer:pid,col,row,colSpan:def.colSpan,rowSpan:def.rowSpan};
+  panelWidgets.push(w);
+  closeWidgetPicker();
+  renderPanelGrid();
+  const s=lastStatus[pid]; if(s)updatePW(w.id,s);
+}
+
+function overlaps(a,b){
+  return a.col<b.col+b.colSpan && a.col+a.colSpan>b.col && a.row<b.row+b.rowSpan && a.row+a.rowSpan>b.row;
+}
+
+function removeWidget(wid){
+  const ch=panelCharts[wid]; if(ch){ch.destroy();delete panelCharts[wid];}
+  delete panelHistory[wid];
+  panelWidgets=panelWidgets.filter(w=>w.id!==wid);
+  renderPanelGrid();
+}
+
+// ---- Recalcule les positions sur resize de fenêtre ----
+window.addEventListener("resize",()=>{
+  if(document.getElementById("view-panels").style.display==="none")return;
+  document.querySelectorAll(".pw").forEach(el=>{
+    const wid=el.dataset.wid, w=panelWidgets.find(x=>x.id===wid);
+    if(w) el.style.cssText=pwStyle(w).style;
+  });
+  renderGhostGrid(editMode);
+});
+
+document.getElementById("wp-overlay").addEventListener("click",e=>{if(e.target.id==="wp-overlay")closeWidgetPicker();});
+
+// ---- Thème clair / sombre ----
+function applyTheme(t){
+  document.body.dataset.theme=t;
+  document.getElementById("theme-btn").textContent=t==="light"?"☀️":"🌙";
+  document.querySelector('meta[name="theme-color"]').setAttribute("content",t==="light"?"#eef1f7":"#070810");
+}
+function toggleTheme(){const t=document.body.dataset.theme==="light"?"dark":"light";localStorage.setItem("pw-theme",t);applyTheme(t);}
+
+// ---- Mode TV (plein écran) ----
+function toggleTV(){
+  document.body.classList.toggle("tv");
+  if(document.body.classList.contains("tv")){if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen().catch(()=>{});}
+  else if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});
+}
+document.addEventListener("fullscreenchange",()=>{if(!document.fullscreenElement)document.body.classList.remove("tv");});
+
+window.addEventListener("resize",moveIndicator);
+document.getElementById("jd-overlay").addEventListener("click",e=>{if(e.target.id==="jd-overlay")closeJob();});
+document.getElementById("set-overlay").addEventListener("click",e=>{if(e.target.id==="set-overlay")closeSettings();});
+// Aperçu en direct des réglages d'apparence
+["set-anim","set-bg","set-font","set-radius","set-density","set-theme","set-accent","set-accent2","set-name","set-logo"]
+  .forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener("input",previewAppearance);});
+// Retour au premier plan : on rafraîchit tout de suite
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)poll();});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeJob();closeSettings();}});
+
+document.getElementById("f-host").addEventListener("keydown",e=>{if(e.key==="Enter")addPrinter();});
+document.getElementById("overlay").addEventListener("click",e=>{if(e.target.id==="overlay")closeModal();});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});
+
+applyTheme(localStorage.getItem("pw-theme")||"dark");
+if(localStorage.getItem("pw-compact")==="1"){document.body.classList.add("compact");
+  document.getElementById("compact-btn").style.color="var(--accent)";}
+fetch("/api/settings").then(r=>r.json()).then(s=>applyAppearance(s.appearance)).catch(()=>{});
+if("serviceWorker" in navigator){navigator.serviceWorker.register("/sw.js").catch(()=>{});}
+loadPrinters().then(loadLayouts);
+setInterval(poll,POLL_MS); setTimeout(poll,400);
+setTimeout(moveIndicator,60);
+</script>
+</body>
+</html>
