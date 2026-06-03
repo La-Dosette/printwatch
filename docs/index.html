@@ -483,6 +483,8 @@
   body.skin-archive .bg,body.skin-archive .grain{display:none!important}
   /* Swiss Style = coins carrés, aucune ombre — bat tous les réglages d'arrondi */
   body.skin-archive *{border-radius:0!important;box-shadow:none!important;text-shadow:none!important}
+  /* Options de perso « Néon » sans effet en mode Archive : on les masque */
+  body.skin-archive .neon-only{display:none!important}
 
   /* — Header / bordereau — */
   body.skin-archive header{background:var(--paper);border-bottom:1px solid var(--ink)}
@@ -620,7 +622,7 @@
   <div class="head-actions">
     <button class="icon-btn" id="compact-btn" title="Vue compacte" onclick="toggleCompact()">▦</button>
     <button class="icon-btn" title="Réglages & alertes Discord" onclick="openSettings()">⚙️</button>
-    <button class="icon-btn" id="theme-btn" title="Thème clair / sombre" onclick="toggleTheme()">🌙</button>
+    <button class="icon-btn neon-only" id="theme-btn" title="Thème clair / sombre" onclick="toggleTheme()">🌙</button>
     <button class="icon-btn" title="Mode TV (plein écran)" onclick="toggleTV()">📺</button>
     <button class="btn" onclick="openModal()">+ Ajouter</button>
   </div>
@@ -703,12 +705,14 @@
     <input id="set-name" placeholder="PrintWatch">
     <label>Logo (emoji ou URL d'image)</label>
     <input id="set-logo" placeholder="🖨️  ou  https://exemple.com/logo.png">
-    <label>Couleurs</label>
-    <div class="appearance-grid">
-      <div class="color-field"><input type="color" id="set-accent" value="#6c8cff"><span>Accent</span></div>
-      <div class="color-field"><input type="color" id="set-accent2" value="#a06bff"><span>Secondaire</span></div>
+    <div class="neon-only">
+      <label>Couleurs</label>
+      <div class="appearance-grid">
+        <div class="color-field"><input type="color" id="set-accent" value="#6c8cff"><span>Accent</span></div>
+        <div class="color-field"><input type="color" id="set-accent2" value="#a06bff"><span>Secondaire</span></div>
+      </div>
+      <div class="preset-row" id="preset-row"></div>
     </div>
-    <div class="preset-row" id="preset-row"></div>
 
     <div class="opt-grid">
       <div><label>Style</label>
@@ -722,36 +726,36 @@
           <option value="reduced">Réduites (perf)</option>
           <option value="none">Aucune (perf max)</option>
         </select></div>
-      <div><label>Fond</label>
-        <select id="set-bg">
-          <option value="color">Dégradé coloré</option>
-          <option value="subtle">Sobre</option>
-          <option value="flat">Uni</option>
-        </select></div>
-      <div><label>Police</label>
-        <select id="set-font">
-          <option value="rounded">Space Grotesk</option>
-          <option value="system">Système</option>
-          <option value="mono-ui">Monospace</option>
-        </select></div>
-      <div><label>Coins</label>
-        <select id="set-radius">
-          <option value="normal">Normaux</option>
-          <option value="sharp">Carrés</option>
-          <option value="round">Très arrondis</option>
-        </select></div>
       <div><label>Densité</label>
         <select id="set-density">
           <option value="comfort">Confort</option>
           <option value="dense">Compacte</option>
         </select></div>
-      <div><label>Thème</label>
+      <div class="neon-only"><label>Fond</label>
+        <select id="set-bg">
+          <option value="color">Dégradé coloré</option>
+          <option value="subtle">Sobre</option>
+          <option value="flat">Uni</option>
+        </select></div>
+      <div class="neon-only"><label>Police</label>
+        <select id="set-font">
+          <option value="rounded">Space Grotesk</option>
+          <option value="system">Système</option>
+          <option value="mono-ui">Monospace</option>
+        </select></div>
+      <div class="neon-only"><label>Coins</label>
+        <select id="set-radius">
+          <option value="normal">Normaux</option>
+          <option value="sharp">Carrés</option>
+          <option value="round">Très arrondis</option>
+        </select></div>
+      <div class="neon-only"><label>Thème</label>
         <select id="set-theme">
           <option value="dark">Sombre</option>
           <option value="light">Clair</option>
         </select></div>
     </div>
-    <div class="hint" style="margin-top:10px">💡 Pour réduire le lag : Animations « Réduites » + Fond « Uni ».</div>
+    <div class="hint neon-only" style="margin-top:10px">💡 Pour réduire le lag : Animations « Réduites » + Fond « Uni ».</div>
     <div class="err" id="set-err"></div>
     <div class="row-btns">
       <button class="btn ghost" onclick="testWebhook()">Tester</button>
