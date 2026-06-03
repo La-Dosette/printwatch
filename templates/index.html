@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500&family=Archivo+Black&family=Space+Mono:wght@400;700&display=swap');
   :root{
     --bg:#070810; --glass:rgba(22,26,40,.55); --glass-brd:rgba(255,255,255,.08);
     --surface:#141826; --surface2:#1d2230; --modal-bg:rgba(20,24,38,.96);
@@ -465,6 +465,139 @@
   .opt-grid select,.opt-row select{width:100%;font:inherit;font-size:13px;padding:9px 11px;border-radius:10px;
     border:1px solid var(--glass-brd);background:var(--surface2);color:var(--txt);cursor:pointer}
   .opt-grid select:focus,.opt-row select:focus{outline:none;border-color:var(--accent)}
+
+  /* =====================================================
+     SKIN "ARCHIVE" — Style Typographique International (Swiss Style)
+     Papier crème, encre noir doux, Archivo Black + Space Mono, filets fins,
+     zéro couleur, zéro ombre, grille stricte.
+     ===================================================== */
+  body.skin-archive{
+    --paper:#F3F0E9; --ink:#1A1A1A; --ink2:#6b685f; --line:#1A1A1A;
+    /* On remappe toute la palette → tout élément non ciblé adopte encre/crème/filet */
+    --bg:#F3F0E9; --txt:#1A1A1A; --muted:#6b685f;
+    --surface:#F3F0E9; --surface2:#F3F0E9; --glass-brd:#1A1A1A; --modal-bg:#F3F0E9;
+    --accent:#1A1A1A; --accent2:#1A1A1A; --ok:#1A1A1A; --hot:#1A1A1A; --bed:#1A1A1A; --cham:#1A1A1A;
+    background:var(--paper)!important; color:var(--ink);
+    font-family:'Space Mono','Courier New',monospace;
+  }
+  body.skin-archive .bg,body.skin-archive .grain{display:none!important}
+  /* Swiss Style = coins carrés, aucune ombre — bat tous les réglages d'arrondi */
+  body.skin-archive *{border-radius:0!important;box-shadow:none!important;text-shadow:none!important}
+
+  /* — Header / bordereau — */
+  body.skin-archive header{background:var(--paper);border-bottom:1px solid var(--ink)}
+  body.skin-archive .brand{font-family:'Archivo Black',sans-serif;text-transform:uppercase;letter-spacing:-.02em;color:var(--ink)}
+  body.skin-archive #brand-name{font-family:'Archivo Black',sans-serif}
+  body.skin-archive .logo{background:none!important;border:1px solid var(--ink);border-radius:0}
+  body.skin-archive #brand-logo img{filter:none}
+  body.skin-archive .brand small{font-family:'Space Mono';font-weight:700;border:1px solid var(--ink);border-radius:0;
+    background:none;color:var(--ink)}
+
+  /* — Onglets : libellés mono soulignés, pas de pilule — */
+  body.skin-archive .tabs{background:none;border:1px solid var(--ink);border-radius:0;padding:0}
+  body.skin-archive .tab{font-family:'Space Mono';font-weight:700;text-transform:uppercase;font-size:12px;color:var(--ink2);
+    border-radius:0;padding:9px 16px;border-right:1px solid var(--ink)}
+  body.skin-archive .tab:last-of-type{border-right:0}
+  body.skin-archive .tab.active{color:var(--paper);background:var(--ink)}
+  body.skin-archive .tab-ind{display:none}
+
+  /* — Boutons — */
+  body.skin-archive .btn{background:var(--ink);color:var(--paper);border-radius:0;font-family:'Space Mono';
+    font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+  body.skin-archive .btn.ghost{background:none;border:1px solid var(--ink);color:var(--ink)}
+  body.skin-archive .icon-btn{border-radius:0;border:1px solid var(--ink);background:none;color:var(--ink)}
+  body.skin-archive .icon-btn:hover{background:var(--ink);color:var(--paper)}
+
+  /* — Cartes = spécimens d'archive — */
+  body.skin-archive .card{background:var(--paper);border:1px solid var(--ink);border-radius:0}
+  body.skin-archive .card::before{display:none}
+  body.skin-archive .card-head{border-bottom:1px solid var(--ink);padding:14px 16px}
+  body.skin-archive .title{font-family:'Archivo Black';text-transform:uppercase;font-size:15px;letter-spacing:-.01em}
+  body.skin-archive .drag-handle{color:var(--ink2)}
+  body.skin-archive .type-chip{font-family:'Space Mono';font-weight:700;color:var(--ink);background:none;
+    border:1px solid var(--ink);border-radius:0;text-transform:uppercase}
+  body.skin-archive .pill{background:none;border:1px solid var(--ink);border-radius:0;color:var(--ink)!important;
+    font-family:'Space Mono';font-weight:700;text-transform:uppercase;font-size:10px}
+  body.skin-archive .pill .led{border-radius:0;background:var(--ink)!important;width:7px;height:7px}
+  body.skin-archive .pill.printing .led::after{display:none}
+  body.skin-archive .card-cfg,body.skin-archive .pw-del,body.skin-archive .card-foot button{color:var(--ink2)}
+
+  /* — Webcam — */
+  body.skin-archive .webcam{background:var(--ink);color:var(--paper);border-bottom:1px solid var(--ink)}
+  body.skin-archive .webcam .scan{display:none}
+
+  /* — Progression — */
+  body.skin-archive .ring .track{stroke:rgba(26,26,26,.12)}
+  body.skin-archive .ring .fill{stroke:var(--ink)}
+  body.skin-archive .pct,body.skin-archive .pw-pct{font-family:'Archivo Black';color:var(--ink)}
+  body.skin-archive .filename,body.skin-archive .eta,body.skin-archive .eta b{font-family:'Space Mono';color:var(--ink)}
+  body.skin-archive .eta b{font-weight:700}
+
+  /* — Températures : champs type formulaire à filets — */
+  body.skin-archive .temps{gap:0;border:1px solid var(--ink)}
+  body.skin-archive .temp{background:none;border:0;border-left:1px solid var(--ink);border-radius:0;padding:10px 12px}
+  body.skin-archive .temp:first-child{border-left:0}
+  body.skin-archive .temp .lbl{font-family:'Space Mono';color:var(--ink2)}
+  body.skin-archive .temp .ico{display:none}
+  body.skin-archive .temp .val{font-family:'Archivo Black';color:var(--ink)!important;font-size:21px}
+  body.skin-archive .temp .tgt{font-family:'Space Mono';color:var(--ink2)}
+  body.skin-archive .temp .heat{background:var(--ink)!important;opacity:.3}
+
+  /* — Santé machine — */
+  body.skin-archive .health{background:none;border:1px solid var(--ink);border-radius:0}
+  body.skin-archive .hstat span{font-family:'Space Mono';color:var(--ink2)}
+  body.skin-archive .hstat b{font-family:'Archivo Black';color:var(--ink)}
+  body.skin-archive .schip{border:1px solid var(--ink);border-radius:0;background:none;color:var(--ink);font-family:'Space Mono'}
+  body.skin-archive .schip b{color:var(--ink)}
+
+  /* — Contrôles — */
+  body.skin-archive .ctrl,body.skin-archive .ctrl-select{border:1px solid var(--ink);border-radius:0;background:none;
+    color:var(--ink);font-family:'Space Mono';font-weight:700;text-transform:uppercase}
+  body.skin-archive .ctrl:hover:not(:disabled){background:var(--ink);color:var(--paper)}
+  body.skin-archive .ctrl.estop{color:var(--ink)}
+  body.skin-archive .card-foot{border-top:1px solid var(--ink)}
+
+  /* — Statistiques — */
+  body.skin-archive .kpi,body.skin-archive .panel,body.skin-archive .job{background:var(--paper);
+    border:1px solid var(--ink);border-radius:0}
+  body.skin-archive .kpi::after{display:none}
+  body.skin-archive .kpi .klbl,body.skin-archive .panel h4,body.skin-archive .jobs-title{font-family:'Space Mono';color:var(--ink2)}
+  body.skin-archive .kpi .kval{font-family:'Archivo Black';color:var(--ink)}
+  body.skin-archive .stat-head{font-family:'Archivo Black';text-transform:uppercase}
+  body.skin-archive .jbadge{border-radius:0;border:1px solid var(--ink)!important;background:none!important;color:var(--ink)!important;font-family:'Space Mono'}
+  body.skin-archive .csv-btn{border-radius:0;border:1px solid var(--ink);color:var(--ink);font-family:'Space Mono'}
+  body.skin-archive .ring-rate .f{stroke:var(--ink)}
+  body.skin-archive .ft-bar{background:rgba(26,26,26,.1);border-radius:0}
+  body.skin-archive .ft-bar>div{background:var(--ink)!important;border-radius:0}
+  body.skin-archive .cost .total{color:var(--ink)}
+
+  /* — Panneaux libres — */
+  body.skin-archive .pw{background:var(--paper);border:1px solid var(--ink);border-radius:0}
+  body.skin-archive .pw-header{border-bottom:1px solid var(--ink)}
+  body.skin-archive .pw-title{font-family:'Space Mono';color:var(--ink2)}
+  body.skin-archive .pw-temp,body.skin-archive .pw-hitem{background:none;border:1px solid var(--ink);border-radius:0}
+  body.skin-archive .pw-temp .val,body.skin-archive .pw-hitem b,body.skin-archive .pw-pct{font-family:'Archivo Black';color:var(--ink)!important}
+  body.skin-archive .panel-toolbar{background:var(--paper);border-bottom:1px solid var(--ink)}
+  body.skin-archive .pt-btn,body.skin-archive .panel-toolbar select,body.skin-archive .pt-name{border-radius:0;border:1px solid var(--ink);background:none;color:var(--ink);font-family:'Space Mono'}
+  body.skin-archive .pt-btn.active{background:var(--ink);color:var(--paper)}
+  body.skin-archive .wp-type{border-radius:0;border:1px solid var(--ink);background:none}
+
+  /* — Modales / champs — */
+  body.skin-archive .overlay{background:rgba(26,26,26,.45)}
+  body.skin-archive .modal{background:var(--paper);border:1px solid var(--ink);border-radius:0}
+  body.skin-archive .modal h2{font-family:'Archivo Black';text-transform:uppercase}
+  body.skin-archive .modal .sub,body.skin-archive label,body.skin-archive .hint{font-family:'Space Mono';color:var(--ink2)}
+  body.skin-archive input,body.skin-archive select,body.skin-archive .wp-printers,body.skin-archive .ctrl-select{
+    background:none;border:1px solid var(--ink);border-radius:0;color:var(--ink);font-family:'Space Mono'}
+  body.skin-archive .section-sep{font-family:'Space Mono';color:var(--ink);border-top:1px solid var(--ink)}
+  body.skin-archive .chk{font-family:'Space Mono';color:var(--ink)}
+  body.skin-archive .preset{border-radius:0}
+  body.skin-archive .toast{background:var(--ink);color:var(--paper);border:1px solid var(--ink);border-radius:0;font-family:'Space Mono'}
+
+  /* — Empty states & divers — */
+  body.skin-archive .empty-state h3{font-family:'Archivo Black';text-transform:uppercase}
+  body.skin-archive .empty-state,body.skin-archive .stat-empty{font-family:'Space Mono';color:var(--ink2)}
+  body.skin-archive .universel,body.skin-archive .badge{color:var(--ink)}
 </style>
 </head>
 <body>
@@ -575,6 +708,11 @@
     <div class="preset-row" id="preset-row"></div>
 
     <div class="opt-grid">
+      <div><label>Style</label>
+        <select id="set-skin">
+          <option value="archive">Archive (Swiss)</option>
+          <option value="neon">Néon (original)</option>
+        </select></div>
       <div><label>Animations</label>
         <select id="set-anim">
           <option value="full">Complètes</option>
@@ -770,8 +908,13 @@ function createCard(p,i){
       scales:{x:{display:false},y:{ticks:{color:"#828aa0",font:{size:10}},grid:{color:"rgba(255,255,255,.05)"}}}}
   });
 }
+// Mappage couleur → encre/gris quand le skin Archive est actif (canvas non stylable en CSS)
+const ARCH_MAP={"#ff6b6b":"#1A1A1A","#ff9f43":"#6b685f","#ffd36b":"#b0ab9b",
+  "#6c8cff":"#1A1A1A","#ff8c42":"#6b685f"};
+function aCol(c){return document.body.classList.contains("skin-archive")?(ARCH_MAP[c]||"#1A1A1A"):c;}
 function mkDs(label,color,hidden){
-  return {label,data:[],borderColor:color,backgroundColor:color+"22",borderWidth:2,
+  const c=aCol(color);
+  return {label,data:[],borderColor:c,backgroundColor:c+"22",borderWidth:2,
     pointRadius:0,tension:.35,fill:true,hidden:!!hidden};
 }
 
@@ -965,7 +1108,8 @@ function renderActivity(p,act){
   const labels=act.map(a=>{const d=new Date(a.date*1000);return d.toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"});});
   statCharts[p.id]=new Chart(ctx,{type:"bar",
     data:{labels,datasets:[{label:"Impressions",data:act.map(a=>a.count),
-      backgroundColor:"rgba(108,140,255,.6)",borderRadius:4,maxBarThickness:14}]},
+      backgroundColor:document.body.classList.contains("skin-archive")?"#1A1A1A":"rgba(108,140,255,.6)",
+      borderRadius:document.body.classList.contains("skin-archive")?0:4,maxBarThickness:14}]},
     options:{responsive:true,maintainAspectRatio:false,animation:{duration:600},
       plugins:{legend:{display:false},tooltip:{callbacks:{afterLabel:c=>"dont "+act[c.dataIndex].completed+" réussies"}}},
       scales:{x:{ticks:{color:"#828aa0",font:{size:9},maxRotation:0,autoSkip:true,maxTicksLimit:8},grid:{display:false}},
@@ -1145,11 +1289,21 @@ function applyAppearance(a){
   const b=document.body;
   b.classList.remove("anim-full","anim-reduced","anim-none","bg-color","bg-subtle","bg-flat",
     "font-rounded","font-system","font-mono-ui","radius-normal","radius-sharp","radius-round","dense");
+  // Skin (identité visuelle) : Archive (Swiss Style) ou Néon (original)
+  const skin=a.skin||localStorage.getItem("pw-skin")||"archive";
+  b.classList.toggle("skin-archive",skin==="archive");
+  localStorage.setItem("pw-skin",skin);
   b.classList.add("anim-"+(a.anim||"full"));
-  b.classList.add("bg-"+(a.bg||"color"));
-  b.classList.add("font-"+(a.font||"rounded"));
-  b.classList.add("radius-"+(a.radius||"normal"));
-  if(a.density==="dense")b.classList.add("dense");
+  // En mode Archive, le skin impose son propre fond/police/arrondi : on n'ajoute pas
+  // les classes qui entreraient en conflit (notamment radius-*).
+  if(skin!=="archive"){
+    b.classList.add("bg-"+(a.bg||"color"));
+    b.classList.add("font-"+(a.font||"rounded"));
+    b.classList.add("radius-"+(a.radius||"normal"));
+    if(a.density==="dense")b.classList.add("dense");
+  } else if(a.density==="dense"){
+    b.classList.add("dense");
+  }
 }
 
 // ---- Réglages / alertes Discord ----
@@ -1172,6 +1326,7 @@ async function openSettings(){
     document.getElementById("set-font").value=a.font||"rounded";
     document.getElementById("set-radius").value=a.radius||"normal";
     document.getElementById("set-density").value=a.density||"comfort";
+    document.getElementById("set-skin").value=a.skin||localStorage.getItem("pw-skin")||"archive";
     document.getElementById("set-theme").value=document.body.dataset.theme||"dark";
     buildPresets(a.accent);
   }catch(e){}
@@ -1208,7 +1363,8 @@ function readAppearanceForm(){
     bg:document.getElementById("set-bg").value,
     font:document.getElementById("set-font").value,
     radius:document.getElementById("set-radius").value,
-    density:document.getElementById("set-density").value};
+    density:document.getElementById("set-density").value,
+    skin:document.getElementById("set-skin").value};
 }
 async function saveSettings(){
   const appearance=readAppearanceForm();
@@ -1220,8 +1376,12 @@ async function saveSettings(){
   // Thème : mémorisé localement (préférence appareil)
   const theme=document.getElementById("set-theme").value;
   localStorage.setItem("pw-theme",theme); applyTheme(theme);
+  // Changement de style : on recharge pour recolorer les graphes (canvas)
+  const skinChanged=(localStorage.getItem("pw-skin")||"archive")!==appearance.skin;
   try{await fetch("/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
-    applyAppearance(appearance);toast("Réglages enregistrés");closeSettings();}
+    applyAppearance(appearance);
+    if(skinChanged){toast("Style appliqué — rechargement…");setTimeout(()=>location.reload(),500);return;}
+    toast("Réglages enregistrés");closeSettings();}
   catch(e){document.getElementById("set-err").textContent="Erreur d'enregistrement";}
 }
 async function testWebhook(){
@@ -1638,7 +1798,7 @@ window.addEventListener("resize",moveIndicator);
 document.getElementById("jd-overlay").addEventListener("click",e=>{if(e.target.id==="jd-overlay")closeJob();});
 document.getElementById("set-overlay").addEventListener("click",e=>{if(e.target.id==="set-overlay")closeSettings();});
 // Aperçu en direct des réglages d'apparence
-["set-anim","set-bg","set-font","set-radius","set-density","set-theme","set-accent","set-accent2","set-name","set-logo"]
+["set-anim","set-bg","set-font","set-radius","set-density","set-theme","set-skin","set-accent","set-accent2","set-name","set-logo"]
   .forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener("input",previewAppearance);});
 // Retour au premier plan : on rafraîchit tout de suite
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)poll();});
@@ -1648,6 +1808,8 @@ document.getElementById("f-host").addEventListener("keydown",e=>{if(e.key==="Ent
 document.getElementById("overlay").addEventListener("click",e=>{if(e.target.id==="overlay")closeModal();});
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});
 
+// Skin par défaut = Archive (avant toute création de graphe pour la bonne palette)
+document.body.classList.toggle("skin-archive",(localStorage.getItem("pw-skin")||"archive")==="archive");
 applyTheme(localStorage.getItem("pw-theme")||"dark");
 if(localStorage.getItem("pw-compact")==="1"){document.body.classList.add("compact");
   document.getElementById("compact-btn").style.color="var(--accent)";}

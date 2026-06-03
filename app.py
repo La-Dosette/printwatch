@@ -33,7 +33,8 @@ DEFAULT_SETTINGS = {
     "discord_webhook": "",
     "alerts": {"complete": True, "error": True, "offline": False},
     "appearance": {"name": "PrintWatch", "accent": "#6c8cff", "accent2": "#a06bff", "logo": "",
-                   "anim": "full", "bg": "color", "font": "rounded", "radius": "normal", "density": "comfort"},
+                   "anim": "full", "bg": "color", "font": "rounded", "radius": "normal",
+                   "density": "comfort", "skin": "archive"},
 }
 
 # Presets de prechauffe (temperature buse / plateau)
