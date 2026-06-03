@@ -48,30 +48,50 @@ automatiquement.** Backend Python léger + interface web temps réel.
 > Les imprimantes **résine Elegoo (SDCP)** et **Bambu Lab (MQTT)** ne sont pas encore
 > gérées. L'architecture est prête pour les ajouter (voir `fetch_status` dans `app.py`).
 
-## 🚀 Installation
+## 🏗️ Architecture : UI hébergée + agent local
+
+PrintWatch sépare **l'interface** (statique, hébergeable) de **l'agent** (local, qui
+parle aux imprimantes). **Toute la configuration est stockée dans le navigateur
+(localStorage)** — privée sur ton appareil, rien ne transite par un serveur tiers.
+
+```
+   UI (docs/index.html)        CORS        Agent (app.py)           LAN      Imprimantes
+   GitHub Pages OU local  ───────────────►  sans état, :8088  ───────────►  (Voron…)
+   config en localStorage    localhost      proxy + alertes      Moonraker
+```
+
+## 🚀 Installation & usage
 
 ```bash
 pip install -r requirements.txt
-python app.py
+python app.py        # lance l'agent local sur le port 8088
 ```
 
-Puis ouvre **http://localhost:8088**.
+Deux façons d'ouvrir l'interface (la même UI) :
 
-Clique sur **« + Ajouter une imprimante »**, entre l'IP (ex. `192.168.1.42`) et valide.
-Accessible aussi depuis ton téléphone sur le même réseau via `http://<ip-du-pc>:8088`.
+1. **En local** → ouvre **http://localhost:8088** (l'agent sert aussi l'UI).
+2. **Hébergée** → l'UI sur GitHub Pages se connecte à ton agent local (qui doit tourner).
+   Au premier accès, le navigateur peut demander l'accès au réseau local → **autorise**.
+
+Clique sur « + Ajouter une imprimante », entre l'IP et valide. La config (imprimantes,
+layouts, apparence, alertes) est sauvée dans **ton navigateur**.
+
+> Agent ailleurs ? Règle son adresse dans ⚙️ Réglages → « Agent local ».
 
 ## 🗂️ Structure
 
 ```
-app.py                  # Backend Flask : détection, API, proxy webcam, alertes
-templates/index.html    # Frontend complet (dashboard, stats, panneaux, réglages)
-static/logo.svg         # Logo
-requirements.txt        # flask, requests
+app.py                     # Agent local : API sans état, proxy webcam, alertes Discord
+docs/                      # Racine web (servie en local par l'agent ET par GitHub Pages)
+  index.html               #   Frontend complet (dashboard, stats, panneaux, réglages)
+  manifest.webmanifest     #   PWA
+  sw.js                    #   Service worker
+  static/logo.svg          #   Logo
+requirements.txt           # flask, requests
 ```
 
-Les fichiers `printers.json`, `settings.json` et `layouts.json` sont **générés au
-premier lancement** et ne sont pas versionnés (données locales + webhook Discord secret).
-Voir `settings.example.json` pour la structure des réglages.
+Aucune donnée n'est versionnée : tout vit dans le **localStorage du navigateur**
+(le webhook Discord est poussé à l'agent en mémoire, jamais écrit sur disque).
 
 ## ⚙️ Notes
 
