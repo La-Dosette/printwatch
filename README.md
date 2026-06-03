@@ -62,6 +62,20 @@ parle aux imprimantes). **Toute la configuration est stockée dans le navigateur
 
 ## 🚀 Installation & usage
 
+### Windows : double-clic
+
+Le plus simple :
+
+1. Double-clique sur `start-printwatch.bat`.
+2. Le script cree un environnement Python local `.venv` si besoin.
+3. Il installe les dependances au premier lancement.
+4. Il ouvre l'interface hebergee : https://la-dosette.github.io/printwatch/
+5. Il garde l'agent local actif sur `http://localhost:8088`.
+
+Garde la fenetre ouverte tant que tu utilises PrintWatch.
+
+### Manuel
+
 ```bash
 pip install -r requirements.txt
 python app.py        # lance l'agent local sur le port 8088
