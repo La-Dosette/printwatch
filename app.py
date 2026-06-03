@@ -19,12 +19,30 @@ import time
 import uuid
 
 import requests
-from flask import Flask, Response, jsonify, render_template, request, stream_with_context
-
-app = Flask(__name__)
-app.config["TEMPLATES_AUTO_RELOAD"] = True  # recharge index.html sans redemarrer
+from flask import Flask, Response, jsonify, request, send_from_directory, stream_with_context
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DOCS_DIR = os.path.join(BASE_DIR, "docs")  # racine web (sert aussi pour GitHub Pages)
+
+# L'agent sert la meme UI statique que GitHub Pages (dossier docs/).
+app = Flask(__name__, static_folder=os.path.join(DOCS_DIR, "static"), static_url_path="/static")
+
+
+@app.after_request
+def add_cors(resp):
+    """CORS ouvert : permet a l'UI hebergee (github.io) d'appeler cet agent local."""
+    resp.headers["Access-Control-Allow-Origin"] = "*"
+    resp.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
+    resp.headers["Access-Control-Allow-Headers"] = "Content-Type, X-Api-Key"
+    # Private Network Access : autorise une origine publique (https) a joindre le LAN/localhost
+    resp.headers["Access-Control-Allow-Private-Network"] = "true"
+    return resp
+
+
+@app.route("/api/<path:_any>", methods=["OPTIONS"])
+def cors_preflight(_any):
+    return ("", 204)
+
 STORE_PATH = os.path.join(BASE_DIR, "printers.json")
 SETTINGS_PATH = os.path.join(BASE_DIR, "settings.json")
 LAYOUTS_PATH  = os.path.join(BASE_DIR, "layouts.json")
@@ -140,14 +158,30 @@ def _handle_transition(printer, prev, cur, status, webhook, alerts):
         discord_send(webhook, f"🔌 {name} — Reconnectée", "L'imprimante répond à nouveau.", 0x6C8CFF)
 
 
+def _printer_from_cfg(item):
+    """Construit une imprimante depuis un item pousse par le navigateur {name,host,type,apikey}."""
+    host = (item.get("host") or "").strip()
+    ptype = item.get("type") or ""
+    base = f"http://{host}:7125" if ptype == "moonraker" else f"http://{host}"
+    return {"id": item.get("id") or host, "name": item.get("name") or host, "host": host,
+            "type": ptype, "base_url": base, "apikey": item.get("apikey") or "",
+            "webcam": item.get("webcam") or ""}
+
+
 def monitor_loop():
-    """Boucle de fond : detecte les changements d'etat et envoie les alertes Discord."""
+    """Boucle de fond : detecte les changements d'etat et envoie les alertes Discord.
+
+    La config (webhook, alertes, liste d'imprimantes) est poussee par le navigateur
+    via POST /api/monitor et stockee dans _monitor_cfg (agent sans persistance).
+    """
     while True:
         try:
-            settings = load_settings()
-            webhook = settings.get("discord_webhook")
-            alerts = settings.get("alerts", {})
-            for p in load_printers():
+            webhook = _monitor_cfg.get("webhook")
+            alerts = _monitor_cfg.get("alerts", {})
+            for item in _monitor_cfg.get("printers", []):
+                p = _printer_from_cfg(item)
+                if not p["host"]:
+                    continue
                 status = fetch_status(p)
                 cur = status.get("state") if status.get("online") else "offline"
                 prev = _last_states.get(p["id"])
@@ -500,70 +534,26 @@ def default_webcam_url(printer):
 # --------------------------------------------------------------------------
 # Routes API
 # --------------------------------------------------------------------------
+# L'agent sert exactement la meme UI statique que GitHub Pages (dossier docs/).
 @app.route("/")
 def index():
-    return render_template("index.html")
-
-
-# --- PWA : installable comme une appli, fonctionne en plein ecran / hors-ligne (coquille) ---
-MANIFEST = {
-    "name": "PrintWatch", "short_name": "PrintWatch",
-    "description": "Monitoring universel d'imprimantes 3D",
-    "start_url": "/", "scope": "/", "display": "standalone",
-    "background_color": "#070810", "theme_color": "#070810",
-    "icons": [
-        {"src": "/static/logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"},
-        {"src": "/icon.svg",        "sizes": "any", "type": "image/svg+xml", "purpose": "maskable"},
-    ],
-}
-
-ICON_SVG = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-<stop offset="0%" stop-color="#6c8cff"/><stop offset="100%" stop-color="#a06bff"/></linearGradient></defs>
-<rect width="512" height="512" rx="112" fill="#0b0e18"/>
-<rect x="56" y="56" width="400" height="400" rx="96" fill="url(#g)"/>
-<g fill="none" stroke="#fff" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
-<path d="M160 360 L160 208 L256 150 L352 208 L352 360"/><path d="M160 288 L352 288"/>
-<path d="M208 360 L208 412 L304 412 L304 360"/></g></svg>"""
-
-SERVICE_WORKER = """
-const CACHE = "printwatch-v1";
-self.addEventListener("install", e => self.skipWaiting());
-self.addEventListener("activate", e => e.waitUntil(self.clients.claim()));
-self.addEventListener("fetch", e => {
-  const url = new URL(e.request.url);
-  if (url.pathname.startsWith("/api")) return;               // donnees live : toujours le reseau
-  e.respondWith(
-    fetch(e.request).then(r => {
-      const copy = r.clone();
-      caches.open(CACHE).then(c => c.put(e.request, copy));
-      return r;
-    }).catch(() => caches.match(e.request))                  // hors-ligne : coquille en cache
-  );
-});
-"""
+    return send_from_directory(DOCS_DIR, "index.html")
 
 
 @app.route("/manifest.webmanifest")
 def manifest():
-    return Response(json.dumps(MANIFEST), mimetype="application/manifest+json")
+    return send_from_directory(DOCS_DIR, "manifest.webmanifest", mimetype="application/manifest+json")
 
 
 @app.route("/favicon.svg")
 @app.route("/icon.svg")
 def icon():
-    # Sert le vrai logo si disponible, sinon le SVG généré
-    logo_path = os.path.join(BASE_DIR, "static", "logo.svg")
-    if os.path.exists(logo_path):
-        with open(logo_path, "r", encoding="utf-8") as f:
-            return Response(f.read(), mimetype="image/svg+xml")
-    return Response(ICON_SVG, mimetype="image/svg+xml")
+    return send_from_directory(DOCS_DIR, "icon.svg", mimetype="image/svg+xml")
 
 
 @app.route("/sw.js")
 def service_worker():
-    return Response(SERVICE_WORKER, mimetype="text/javascript",
-                    headers={"Service-Worker-Allowed": "/"})
+    return send_from_directory(DOCS_DIR, "sw.js", mimetype="text/javascript")
 
 
 @app.route("/api/printers", methods=["GET"])
@@ -837,7 +827,168 @@ def api_set_active_layout():
     return jsonify({"ok": True})
 
 
+# ==========================================================================
+# AGENT SANS ETAT — endpoints parametres par l'hote (config cote navigateur)
+# L'UI (hebergeable sur github.io) stocke la config en localStorage et passe
+# host/type/apikey en parametres. L'agent ne stocke rien.
+# ==========================================================================
+def printer_from_params():
+    host = (request.args.get("host") or "").strip()
+    ptype = (request.args.get("type") or "").strip()
+    apikey = (request.args.get("apikey") or "").strip()
+    base = f"http://{host}:7125" if ptype == "moonraker" else f"http://{host}"
+    return {"id": host, "name": request.args.get("name") or host, "host": host,
+            "type": ptype, "base_url": base, "apikey": apikey,
+            "webcam": request.args.get("webcam", "")}
+
+
+@app.route("/api/detect")
+def api_detect():
+    host = (request.args.get("host") or "").strip()
+    apikey = (request.args.get("apikey") or "").strip()
+    if not host:
+        return jsonify({"error": "Adresse requise"}), 400
+    ptype, base = detect_protocol(host, apikey)
+    if not ptype:
+        return jsonify({"error": "Aucune imprimante detectee a cette adresse. "
+                        "Verifie l'IP / que l'agent et la machine sont sur le reseau."}), 422
+    clean = host
+    for pre in ("http://", "https://"):
+        if clean.startswith(pre):
+            clean = clean[len(pre):]
+    clean = clean.split("/")[0].split(":")[0] if ptype == "moonraker" else clean.split("/")[0]
+    return jsonify({"type": ptype, "host": clean, "base": base})
+
+
+@app.route("/api/status")
+def api_status_q():
+    p = printer_from_params()
+    if not p["host"]:
+        return jsonify({"error": "host requis"}), 400
+    return jsonify(fetch_status(p))
+
+
+@app.route("/api/stats")
+def api_stats_q():
+    return jsonify(fetch_history(printer_from_params()))
+
+
+@app.route("/api/stats.csv")
+def api_stats_csv_q():
+    p = printer_from_params()
+    if p.get("type") != "moonraker":
+        return Response(status=404)
+    import csv
+    import io
+    buf = io.StringIO()
+    w = csv.writer(buf, delimiter=";")
+    w.writerow(["date", "fichier", "statut", "duree_min", "filament_mm", "poids_g", "type"])
+    for j in _raw_history(p["base_url"]):
+        nj = _normalize_job(j)
+        date = time.strftime("%Y-%m-%d %H:%M", time.localtime(nj["end_time"])) if nj["end_time"] else ""
+        w.writerow([date, nj["filename"], nj["status"], round((nj["duration"] or 0) / 60, 1),
+                    round(nj["filament"] or 0), nj["weight"] or "", nj["filament_type"] or ""])
+    fname = f"printwatch_{p['name']}.csv".replace(" ", "_")
+    return Response("﻿" + buf.getvalue(), mimetype="text/csv",
+                    headers={"Content-Disposition": f"attachment; filename={fname}"})
+
+
+@app.route("/api/control", methods=["POST"])
+def api_control_q():
+    p = printer_from_params()
+    if p.get("type") != "moonraker":
+        return jsonify({"error": "Controles disponibles uniquement pour Moonraker"}), 422
+    data = request.get_json(force=True, silent=True) or {}
+    action = data.get("action")
+    base = p["base_url"]
+    try:
+        if action == "pause":
+            _moonraker_post(base, "/printer/print/pause")
+        elif action == "resume":
+            _moonraker_post(base, "/printer/print/resume")
+        elif action == "cancel":
+            _moonraker_post(base, "/printer/print/cancel")
+        elif action == "estop":
+            _moonraker_post(base, "/printer/emergency_stop")
+        elif action == "cooldown":
+            _moonraker_gcode(base, "TURN_OFF_HEATERS")
+        elif action == "preheat":
+            preset = PREHEAT.get(data.get("material"))
+            if not preset:
+                return jsonify({"error": "Materiau inconnu"}), 400
+            _moonraker_gcode(base, f"SET_HEATER_TEMPERATURE HEATER=extruder TARGET={preset['ext']}")
+            _moonraker_gcode(base, f"SET_HEATER_TEMPERATURE HEATER=heater_bed TARGET={preset['bed']}")
+        else:
+            return jsonify({"error": "Action inconnue"}), 400
+    except requests.RequestException as e:
+        return jsonify({"error": f"Echec de la commande : {e}"}), 502
+    return jsonify({"ok": True})
+
+
+@app.route("/api/webcam")
+def api_webcam_q():
+    url = request.args.get("url", "")
+    if not url:
+        return Response(status=404)
+    try:
+        upstream = requests.get(url, stream=True, timeout=HTTP_TIMEOUT)
+    except requests.RequestException:
+        return Response(status=502)
+    ctype = upstream.headers.get("Content-Type", "multipart/x-mixed-replace")
+
+    def generate():
+        try:
+            for chunk in upstream.iter_content(chunk_size=4096):
+                yield chunk
+        except requests.RequestException:
+            return
+    return Response(stream_with_context(generate()), content_type=ctype)
+
+
+@app.route("/api/thumb")
+def api_thumb_q():
+    p = printer_from_params()
+    path = request.args.get("path", "")
+    if p.get("type") != "moonraker" or not path:
+        return Response(status=404)
+    try:
+        r = requests.get(f"{p['base_url']}/server/files/gcodes/{path}", timeout=HTTP_TIMEOUT)
+        if not r.ok:
+            return Response(status=404)
+        return Response(r.content, content_type=r.headers.get("Content-Type", "image/png"))
+    except requests.RequestException:
+        return Response(status=502)
+
+
+# --- Surveillance / alertes Discord : config poussee par le navigateur ---
+_monitor_cfg = {"webhook": "", "alerts": {"complete": True, "error": True, "offline": False}, "printers": []}
+
+
+@app.route("/api/monitor", methods=["POST"])
+def api_monitor():
+    data = request.get_json(force=True, silent=True) or {}
+    _monitor_cfg["webhook"] = (data.get("webhook") or "").strip()
+    _monitor_cfg["alerts"] = {**_monitor_cfg["alerts"], **(data.get("alerts") or {})}
+    _monitor_cfg["printers"] = data.get("printers") or []
+    return jsonify({"ok": True})
+
+
+@app.route("/api/monitor/test", methods=["POST"])
+def api_monitor_test():
+    data = request.get_json(force=True, silent=True) or {}
+    wh = (data.get("webhook") or "").strip() or _monitor_cfg["webhook"]
+    if not wh:
+        return jsonify({"error": "Aucun webhook configure"}), 400
+    ok = discord_send(wh, "🔔 PrintWatch — Test", "Les alertes Discord fonctionnent !", 0x6C8CFF)
+    return (jsonify({"ok": True}) if ok else (jsonify({"error": "Envoi echoue"}), 502))
+
+
+@app.route("/api/health")
+def api_health():
+    return jsonify({"ok": True, "agent": "printwatch", "version": 1})
+
+
 if __name__ == "__main__":
     threading.Thread(target=monitor_loop, daemon=True).start()
-    print("PrintWatch demarre sur http://localhost:8088")
+    print("Agent PrintWatch demarre sur http://localhost:8088")
     app.run(host="0.0.0.0", port=8088, threaded=True)

@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PrintWatch — Monitoring 3D</title>
-<link rel="manifest" href="/manifest.webmanifest">
-<link rel="icon" href="/icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="/icon.svg">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
 <style>
   /* Logo clair → inversé en thème sombre */
   #brand-logo img{filter:invert(1) brightness(1.6);}
@@ -607,7 +607,7 @@
 <header>
   <div class="brand">
     <span class="logo" id="brand-logo" style="background:transparent;box-shadow:none;width:38px;height:38px">
-      <img src="/static/logo.svg" alt="PrintWatch" style="width:100%;height:100%;object-fit:contain">
+      <img src="static/logo.svg" alt="PrintWatch" style="width:100%;height:100%;object-fit:contain">
     </span>
     <span id="brand-name">PrintWatch</span> <small>universel</small>
   </div>
@@ -687,6 +687,9 @@
   <div class="modal">
     <h2>Réglages &amp; alertes</h2>
     <div class="sub">Reçois une notification Discord quand une impression se termine, échoue, etc.</div>
+    <label>Agent local (avancé)</label>
+    <input id="set-agent" placeholder="http://localhost:8088">
+    <div class="hint">Adresse de l'agent qui relaie vers tes imprimantes. Vide = même origine (app locale).</div>
     <label>Webhook Discord</label>
     <input id="set-webhook" placeholder="https://discord.com/api/webhooks/...">
     <div class="hint">Discord → Paramètres du salon → Intégrations → Webhooks → Nouveau → copier l'URL. Vide = désactivé.</div>
@@ -785,6 +788,41 @@ const POLL_MS=2500, MAX_POINTS=60, RING_R=40, RING_C=2*Math.PI*RING_R;
 const charts={}, history={}, cards={}, shown={};
 const statCharts={}, statJobs={}, statByType={};
 let currentTab="dashboard";
+
+// ============================================================
+// COUCHE D'ACCÈS — agent local + stockage 100% localStorage
+// L'UI peut être hébergée (github.io) ; les données restent sur l'appareil.
+// ============================================================
+// Base de l'agent : même origine en local, sinon localhost:8088 (ou réglage manuel).
+const AGENT=(localStorage.getItem("pw-agent")||
+  (/github\.io$/.test(location.hostname)?"http://localhost:8088":"")).replace(/\/$/,"");
+const api=p=>AGENT+p;
+// Stockage local
+const LS={
+  printers:()=>{try{return JSON.parse(localStorage.getItem("pw-printers")||"[]")}catch(e){return[]}},
+  setPrinters:a=>localStorage.setItem("pw-printers",JSON.stringify(a)),
+  appearance:()=>{try{return JSON.parse(localStorage.getItem("pw-appearance")||"null")}catch(e){return null}},
+  setAppearance:a=>localStorage.setItem("pw-appearance",JSON.stringify(a)),
+  alerts:()=>{try{return JSON.parse(localStorage.getItem("pw-alerts")||'{"complete":true,"error":true,"offline":false}')}catch(e){return{complete:true,error:true,offline:false}}},
+  setAlerts:a=>localStorage.setItem("pw-alerts",JSON.stringify(a)),
+  webhook:()=>localStorage.getItem("pw-webhook")||"",
+  setWebhook:w=>localStorage.setItem("pw-webhook",w||""),
+  layouts:()=>{try{return JSON.parse(localStorage.getItem("pw-layouts")||'{"active":"","layouts":{}}')}catch(e){return{active:"",layouts:{}}}},
+  setLayouts:l=>localStorage.setItem("pw-layouts",JSON.stringify(l)),
+};
+// Helpers requête imprimante
+const pq=p=>`host=${encodeURIComponent(p.host)}&type=${encodeURIComponent(p.type||"")}`+
+  (p.apikey?`&apikey=${encodeURIComponent(p.apikey)}`:"");
+const webcamUrl=p=>p.webcam&&p.webcam.trim()?p.webcam.trim():`http://${p.host}/webcam/?action=stream`;
+const printersById={};  // id -> objet imprimante complet (host,type,apikey,webcam)
+const lastStatus={};    // id -> dernier statut (panels + retour d'onglet)
+
+// Pousse la config de surveillance (alertes Discord) à l'agent local
+function pushMonitor(){
+  const payload={webhook:LS.webhook(),alerts:LS.alerts(),
+    printers:LS.printers().map(p=>({id:p.id,name:p.name,host:p.host,type:p.type,apikey:p.apikey||""}))};
+  fetch(api("/api/monitor"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}).catch(()=>{});
+}
 const STATE_LABELS={printing:"Impression",paused:"En pause",complete:"Terminé",standby:"Prêt",
   idle:"Prêt",cancelled:"Annulé",error:"Erreur",offline:"Hors ligne",operational:"Prêt",ready:"Prêt",unknown:"—"};
 
@@ -807,8 +845,10 @@ function animNum(el,to,suffix="°"){
 }
 
 async function loadPrinters(){
-  const list=await (await fetch("/api/printers")).json();
+  const list=LS.printers();               // ← depuis le stockage local de l'appareil
   allPrinters=list;
+  Object.keys(printersById).forEach(id=>delete printersById[id]);
+  list.forEach(p=>printersById[p.id]=p);
   const grid=document.getElementById("grid");
   Object.keys(cards).forEach(id=>{if(!list.find(p=>p.id===id)){cards[id].remove();delete cards[id];delete charts[id];}});
   if(!list.length){
@@ -896,7 +936,7 @@ function createCard(p,i){
   cards[p.id]=el;
   setupDnd(el,p.id);
   applyCardWidgets(p.id);
-  document.getElementById("cam-"+p.id).src="/api/webcam/"+p.id;
+  document.getElementById("cam-"+p.id).src=api("/api/webcam?url="+encodeURIComponent(webcamUrl(p)));
 
   history[p.id]={extruder:[],bed:[],chamber:[],labels:[]};
   charts[p.id]=new Chart(el.querySelector(`#chart-${p.id}`),{
@@ -922,7 +962,8 @@ async function poll(){
   // Onglet navigateur en arrière-plan : on ne sollicite rien (économie CPU + réseau)
   if(document.hidden)return;
   await Promise.all(Object.keys(cards).map(async id=>{
-    try{const r=await fetch("/api/status/"+id);if(r.ok){const s=await r.json();updateCard(id,s);updatePanelWidgets(id,s);}}catch(e){}
+    const p=printersById[id]; if(!p)return;
+    try{const r=await fetch(api("/api/status?"+pq(p)));if(r.ok){const s=await r.json();updateCard(id,s);updatePanelWidgets(id,s);}}catch(e){}
   }));
 }
 
@@ -979,22 +1020,30 @@ function closeModal(){document.getElementById("overlay").classList.remove("show"
 async function addPrinter(){
   const btn=document.getElementById("f-submit"),err=document.getElementById("f-err");
   err.textContent="";
-  const payload={host:val("f-host"),name:val("f-name"),webcam:val("f-webcam"),apikey:val("f-apikey")};
-  if(!payload.host.trim()){err.textContent="Entre une adresse IP.";return;}
+  const host=val("f-host").trim(), name=val("f-name").trim(),
+        webcam=val("f-webcam").trim(), apikey=val("f-apikey").trim();
+  if(!host){err.textContent="Entre une adresse IP.";return;}
   btn.disabled=true;btn.innerHTML='<span class="spin"></span>Détection…';
   try{
-    const r=await fetch("/api/printers",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+    // Détection via l'agent local (probe Moonraker/OctoPrint)
+    const r=await fetch(api("/api/detect?host="+encodeURIComponent(host)+(apikey?"&apikey="+encodeURIComponent(apikey):"")));
     const d=await r.json();
-    if(!r.ok){err.textContent=d.error||"Erreur";return;}
+    if(!r.ok){err.textContent=d.error||"Aucune imprimante détectée. L'agent local tourne-t-il ?";return;}
+    const printer={id:"p"+Date.now().toString(36)+Math.random().toString(36).slice(2,5),
+      name:name||d.host,host:d.host,type:d.type,apikey,webcam};
+    const list=LS.printers(); list.push(printer); LS.setPrinters(list);
+    pushMonitor();
     closeModal();await loadPrinters();
-  }catch(e){err.textContent="Erreur réseau.";}
+  }catch(e){err.textContent="Agent injoignable. Lance l'agent local (python app.py).";}
   finally{btn.disabled=false;btn.innerHTML="Détecter &amp; ajouter";}
 }
 function val(id){return document.getElementById(id).value;}
 
 async function removePrinter(id,name){
   if(!confirm("Supprimer « "+name+" » ?"))return;
-  await fetch("/api/printers/"+id,{method:"DELETE"});await loadPrinters();
+  LS.setPrinters(LS.printers().filter(p=>p.id!==id));
+  pushMonitor();
+  await loadPrinters();
 }
 
 // ---- Onglets ----
@@ -1034,7 +1083,7 @@ const ST_LBL={completed:"Terminé",cancelled:"Annulé",error:"Erreur",in_progres
   interrupted:"Interrompu",klippy_shutdown:"Arrêt Klipper",klippy_disconnect:"Déconnecté"};
 
 async function loadStats(){
-  const printers=await (await fetch("/api/printers")).json();
+  const printers=LS.printers();
   const box=document.getElementById("stats");
   if(!printers.length){box.innerHTML='<div class="stat-empty">Aucune imprimante à analyser.</div>';return;}
   box.innerHTML="";
@@ -1043,7 +1092,7 @@ async function loadStats(){
     block.innerHTML=`
       <div class="stat-head block-head">
         <span>${esc(p.name)} <span class="type-chip">${p.type||"?"}</span></span>
-        <button class="csv-btn" onclick="window.location='/api/stats/${p.id}/csv'">⬇ Export CSV</button>
+        <button class="csv-btn" onclick="window.location='${api("/api/stats.csv?"+pq(p))}'">⬇ Export CSV</button>
       </div>
       <div class="kpis" id="kpi-${p.id}"></div>
       <div class="panels">
@@ -1055,7 +1104,7 @@ async function loadStats(){
       <div class="jobs-title">Impressions récentes</div>
       <div class="jobs" id="jobs-${p.id}"><div class="stat-empty">Chargement…</div></div>`;
     box.appendChild(block);
-    try{renderStats(p,await (await fetch("/api/stats/"+p.id)).json());}
+    try{renderStats(p,await (await fetch(api("/api/stats?"+pq(p)))).json());}
     catch(e){document.getElementById("jobs-"+p.id).innerHTML='<div class="stat-empty">Erreur de chargement.</div>';}
   }
 }
@@ -1088,7 +1137,7 @@ function renderStats(p,s){
     const el=document.createElement("div");el.className="job";el.style.animationDelay=(i*0.04)+"s";
     el.onclick=()=>openJob(p,i);
     const thumb=j.thumb
-      ?`<img class="thumb" src="/api/thumb/${p.id}?path=${encodeURIComponent(j.thumb)}" onerror="this.style.visibility='hidden'">`
+      ?`<img class="thumb" src="${api("/api/thumb?"+pq(p)+"&path="+encodeURIComponent(j.thumb))}" onerror="this.style.visibility='hidden'">`
       :`<div class="thumb"></div>`;
     const meta=["<span>"+fmtDate(j.end_time)+"</span>"];
     if(j.duration)meta.push("<span>⏱ "+fmtDur(j.duration)+"</span>");
@@ -1146,7 +1195,7 @@ function openJob(p,i){
   const sd=document.getElementById("jd-status");
   sd.innerHTML=`<span class="jbadge ${j.status}">${ST_LBL[j.status]||j.status}</span> &nbsp; ${fmtDate(j.end_time)}`;
   const th=document.getElementById("jd-thumb");
-  th.style.visibility=""; th.src=j.thumb?("/api/thumb/"+p.id+"?path="+encodeURIComponent(j.thumb)):"";
+  th.style.visibility=""; th.src=j.thumb?api("/api/thumb?"+pq(p)+"&path="+encodeURIComponent(j.thumb)):"";
   if(!j.thumb)th.style.visibility="hidden";
   const m=j.meta||{}, rows=[];
   const add=(k,v)=>{if(v!==undefined&&v!==null&&v!=="")rows.push(`<div class="jd-row"><span>${k}</span><b>${v}</b></div>`);};
@@ -1181,8 +1230,9 @@ function updateControls(id,state,online){
 async function control(id,action,material,confirmNeeded){
   const verbs={cancel:"annuler l'impression en cours",estop:"déclencher l'ARRÊT D'URGENCE"};
   if(confirmNeeded && !confirm("Confirmer : "+verbs[action]+" ?"))return;
+  const p=printersById[id]; if(!p)return;
   try{
-    const r=await fetch("/api/control/"+id,{method:"POST",headers:{"Content-Type":"application/json"},
+    const r=await fetch(api("/api/control?"+pq(p)),{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({action,material})});
     const d=await r.json();
     if(!r.ok){toast(d.error||"Échec de la commande",true);return;}
@@ -1311,12 +1361,13 @@ async function openSettings(){
   document.getElementById("set-overlay").classList.add("show");
   document.getElementById("set-err").textContent="";
   try{
-    const s=await (await fetch("/api/settings")).json();
-    document.getElementById("set-webhook").value=s.discord_webhook||"";
-    document.getElementById("al-complete").checked=!!(s.alerts&&s.alerts.complete);
-    document.getElementById("al-error").checked=!!(s.alerts&&s.alerts.error);
-    document.getElementById("al-offline").checked=!!(s.alerts&&s.alerts.offline);
-    const a=s.appearance||{};
+    document.getElementById("set-agent").value=localStorage.getItem("pw-agent")||"";
+    document.getElementById("set-webhook").value=LS.webhook();
+    const al=LS.alerts();
+    document.getElementById("al-complete").checked=!!al.complete;
+    document.getElementById("al-error").checked=!!al.error;
+    document.getElementById("al-offline").checked=!!al.offline;
+    const a=LS.appearance()||{};
     document.getElementById("set-name").value=a.name||"";
     document.getElementById("set-logo").value=a.logo||"";
     document.getElementById("set-accent").value=a.accent||"#6c8cff";
@@ -1366,33 +1417,36 @@ function readAppearanceForm(){
     density:document.getElementById("set-density").value,
     skin:document.getElementById("set-skin").value};
 }
-async function saveSettings(){
+function saveSettings(){
   const appearance=readAppearanceForm();
-  const payload={discord_webhook:document.getElementById("set-webhook").value,
-    alerts:{complete:document.getElementById("al-complete").checked,
-      error:document.getElementById("al-error").checked,
-      offline:document.getElementById("al-offline").checked},
-    appearance};
-  // Thème : mémorisé localement (préférence appareil)
+  // Tout est stocké en localStorage (sur l'appareil)
+  LS.setAppearance(appearance);
+  LS.setWebhook(document.getElementById("set-webhook").value);
+  LS.setAlerts({complete:document.getElementById("al-complete").checked,
+    error:document.getElementById("al-error").checked,
+    offline:document.getElementById("al-offline").checked});
+  const newAgent=document.getElementById("set-agent").value.trim().replace(/\/$/,"");
+  const agentChanged=newAgent!==(localStorage.getItem("pw-agent")||"");
+  if(newAgent)localStorage.setItem("pw-agent",newAgent); else localStorage.removeItem("pw-agent");
+  // Thème : préférence locale
   const theme=document.getElementById("set-theme").value;
   localStorage.setItem("pw-theme",theme); applyTheme(theme);
-  // Changement de style : on recharge pour recolorer les graphes (canvas)
+  // Pousse la config d'alertes à l'agent (pour Discord)
+  pushMonitor();
   const skinChanged=(localStorage.getItem("pw-skin")||"archive")!==appearance.skin;
-  try{await fetch("/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
-    applyAppearance(appearance);
-    if(skinChanged){toast("Style appliqué — rechargement…");setTimeout(()=>location.reload(),500);return;}
-    toast("Réglages enregistrés");closeSettings();}
-  catch(e){document.getElementById("set-err").textContent="Erreur d'enregistrement";}
+  applyAppearance(appearance);
+  if(skinChanged||agentChanged){toast("Réglages appliqués — rechargement…");setTimeout(()=>location.reload(),500);return;}
+  toast("Réglages enregistrés");closeSettings();
 }
 async function testWebhook(){
   const err=document.getElementById("set-err");err.textContent="";
   try{
-    const r=await fetch("/api/settings/test",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({discord_webhook:document.getElementById("set-webhook").value})});
+    const r=await fetch(api("/api/monitor/test"),{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({webhook:document.getElementById("set-webhook").value})});
     const d=await r.json();
     if(r.ok)toast("🔔 Message test envoyé sur Discord");
     else err.textContent=d.error||"Échec de l'envoi";
-  }catch(e){err.textContent="Erreur réseau";}
+  }catch(e){err.textContent="Agent injoignable";}
 }
 
 // =====================================================
@@ -1555,7 +1609,6 @@ function buildWidgetBody(w,body){
 }
 
 // ---- Mise à jour des widgets depuis le statut ----
-const lastStatus={};
 function updatePW(wid,s){
   const w=panelWidgets.find(x=>x.id===wid); if(!w)return;
   const t=s.temps||{}, sys=s.system||{}, sens=s.sensors||{};
@@ -1668,7 +1721,7 @@ function repositionPW(el,w){
 let allPrinters=[];
 
 async function loadLayouts(){
-  const r=await fetch("/api/layouts"); const d=await r.json();
+  const d=LS.layouts();
   panelLayouts=d.layouts||{}; activeLayout=d.active||"";
   rebuildLayoutSelect();
   if(activeLayout&&panelLayouts[activeLayout]){
@@ -1694,29 +1747,30 @@ function switchLayout(name){
   activeLayout=name;
   panelWidgets=JSON.parse(JSON.stringify(panelLayouts[name]||[]));
   document.getElementById("layout-name").value=name;
-  fetch("/api/layouts/active",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})});
+  const d=LS.layouts(); d.active=name; LS.setLayouts(d);
   renderPanelGrid();
   // Refresh all widgets with last known status
   Object.entries(lastStatus).forEach(([pid,s])=>updatePanelWidgets(pid,s));
 }
 
-async function saveCurrentLayout(){
+function saveCurrentLayout(){
   const name=document.getElementById("layout-name").value.trim();
   if(!name){toast("Entre un nom pour ce layout",true);return;}
-  await fetch("/api/layouts",{method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({name,widgets:panelWidgets})});
   panelLayouts[name]=JSON.parse(JSON.stringify(panelWidgets));
-  activeLayout=name; rebuildLayoutSelect();
+  activeLayout=name;
+  LS.setLayouts({active:name,layouts:panelLayouts});
+  rebuildLayoutSelect();
   toast("Layout « "+name+" » enregistré");
 }
 
-async function deleteCurrentLayout(){
+function deleteCurrentLayout(){
   const name=activeLayout||document.getElementById("layout-name").value.trim();
   if(!name||!panelLayouts[name]){toast("Aucun layout à supprimer",true);return;}
   if(!confirm("Supprimer le layout « "+name+" » ?"))return;
-  await fetch("/api/layouts/"+encodeURIComponent(name),{method:"DELETE"});
   delete panelLayouts[name];
-  activeLayout=""; panelWidgets=[]; rebuildLayoutSelect();
+  activeLayout=""; panelWidgets=[];
+  LS.setLayouts({active:"",layouts:panelLayouts});
+  rebuildLayoutSelect();
   document.getElementById("layout-name").value="";
   document.getElementById("layout-select").value="";
   renderPanelGrid(); toast("Layout supprimé");
@@ -1813,10 +1867,12 @@ document.body.classList.toggle("skin-archive",(localStorage.getItem("pw-skin")||
 applyTheme(localStorage.getItem("pw-theme")||"dark");
 if(localStorage.getItem("pw-compact")==="1"){document.body.classList.add("compact");
   document.getElementById("compact-btn").style.color="var(--accent)";}
-fetch("/api/settings").then(r=>r.json()).then(s=>applyAppearance(s.appearance)).catch(()=>{});
-if("serviceWorker" in navigator){navigator.serviceWorker.register("/sw.js").catch(()=>{});}
+applyAppearance(LS.appearance()||{});
+if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{});}
 loadPrinters().then(loadLayouts);
+pushMonitor();   // transmet la config d'alertes à l'agent au démarrage
 setInterval(poll,POLL_MS); setTimeout(poll,400);
+setInterval(pushMonitor,60000);  // ré-aligne l'agent périodiquement
 setTimeout(moveIndicator,60);
 </script>
 </body>
