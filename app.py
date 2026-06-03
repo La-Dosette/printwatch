@@ -1,9 +1,10 @@
 """
-PrintWatch - Dashboard universel de monitoring d'imprimantes 3D.
+PrintWatch - Agent local de monitoring d'imprimantes 3D.
 
-Tu mets l'IP, le backend detecte le protocole (Moonraker / OctoPrint) et
-expose un etat normalise (statut, progression, temperatures, webcam) au
-dashboard web.
+Agent SANS ETAT : il detecte le protocole (Moonraker / OctoPrint) et relaie
+vers les imprimantes. Toute la configuration vit cote navigateur (localStorage) ;
+l'hote/le type sont passes en parametres d'URL. L'agent sert aussi l'UI statique
+(dossier docs/), la meme qui peut etre hebergee sur GitHub Pages.
 
 Lancement :
     pip install -r requirements.txt
@@ -11,12 +12,10 @@ Lancement :
 Puis ouvre http://localhost:8088 dans ton navigateur.
 """
 
-import json
 import os
 import re
 import threading
 import time
-import uuid
 
 import requests
 from flask import Flask, Response, jsonify, request, send_from_directory, stream_with_context
@@ -43,18 +42,6 @@ def add_cors(resp):
 def cors_preflight(_any):
     return ("", 204)
 
-STORE_PATH = os.path.join(BASE_DIR, "printers.json")
-SETTINGS_PATH = os.path.join(BASE_DIR, "settings.json")
-LAYOUTS_PATH  = os.path.join(BASE_DIR, "layouts.json")
-
-DEFAULT_SETTINGS = {
-    "discord_webhook": "",
-    "alerts": {"complete": True, "error": True, "offline": False},
-    "appearance": {"name": "PrintWatch", "accent": "#6c8cff", "accent2": "#a06bff", "logo": "",
-                   "anim": "full", "bg": "color", "font": "rounded", "radius": "normal",
-                   "density": "comfort", "skin": "archive"},
-}
-
 # Presets de prechauffe (temperature buse / plateau)
 PREHEAT = {
     "PLA": {"ext": 210, "bed": 60},
@@ -67,63 +54,6 @@ HTTP_TIMEOUT = 4
 
 # Cache des objets capteurs detectes par imprimante (evite un appel a chaque poll).
 _objects_cache = {}
-
-
-# --------------------------------------------------------------------------
-# Persistance (un simple fichier JSON, pas de base de donnees a installer)
-# --------------------------------------------------------------------------
-def load_printers():
-    if not os.path.exists(STORE_PATH):
-        return []
-    try:
-        with open(STORE_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except (json.JSONDecodeError, OSError):
-        return []
-
-
-def save_printers(printers):
-    with open(STORE_PATH, "w", encoding="utf-8") as f:
-        json.dump(printers, f, indent=2, ensure_ascii=False)
-
-
-def find_printer(printer_id):
-    return next((p for p in load_printers() if p["id"] == printer_id), None)
-
-
-def load_layouts():
-    if not os.path.exists(LAYOUTS_PATH):
-        return {"active": "", "layouts": {}}
-    try:
-        with open(LAYOUTS_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except (json.JSONDecodeError, OSError):
-        return {"active": "", "layouts": {}}
-
-
-def save_layouts(data):
-    with open(LAYOUTS_PATH, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
-
-
-def load_settings():
-    if not os.path.exists(SETTINGS_PATH):
-        return dict(DEFAULT_SETTINGS)
-    try:
-        with open(SETTINGS_PATH, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        merged = dict(DEFAULT_SETTINGS)
-        merged.update(data)
-        merged["alerts"] = {**DEFAULT_SETTINGS["alerts"], **(data.get("alerts") or {})}
-        merged["appearance"] = {**DEFAULT_SETTINGS["appearance"], **(data.get("appearance") or {})}
-        return merged
-    except (json.JSONDecodeError, OSError):
-        return dict(DEFAULT_SETTINGS)
-
-
-def save_settings(settings):
-    with open(SETTINGS_PATH, "w", encoding="utf-8") as f:
-        json.dump(settings, f, indent=2, ensure_ascii=False)
 
 
 # --------------------------------------------------------------------------
@@ -523,16 +453,8 @@ def fetch_history(printer):
     return out
 
 
-def default_webcam_url(printer):
-    """Si l'utilisateur n'a pas fourni d'URL webcam, on tente le chemin standard."""
-    if printer.get("webcam"):
-        return printer["webcam"]
-    host = printer.get("host", "")
-    return f"http://{host}/webcam/?action=stream"
-
-
 # --------------------------------------------------------------------------
-# Routes API
+# Routes (UI statique + API agent)
 # --------------------------------------------------------------------------
 # L'agent sert exactement la meme UI statique que GitHub Pages (dossier docs/).
 @app.route("/")
@@ -556,83 +478,6 @@ def service_worker():
     return send_from_directory(DOCS_DIR, "sw.js", mimetype="text/javascript")
 
 
-@app.route("/api/printers", methods=["GET"])
-def api_list():
-    out = []
-    for p in load_printers():
-        out.append({
-            "id": p["id"],
-            "name": p["name"],
-            "host": p["host"],
-            "type": p.get("type"),
-            "webcam": default_webcam_url(p),
-        })
-    return jsonify(out)
-
-
-@app.route("/api/printers", methods=["POST"])
-def api_add():
-    data = request.get_json(force=True, silent=True) or {}
-    host = (data.get("host") or "").strip()
-    if not host:
-        return jsonify({"error": "Adresse IP / hote requis"}), 400
-
-    name = (data.get("name") or "").strip() or host
-    apikey = (data.get("apikey") or "").strip()
-    webcam = (data.get("webcam") or "").strip()
-
-    ptype, base = detect_protocol(host, apikey)
-    if not ptype:
-        return jsonify({
-            "error": "Aucune imprimante detectee a cette adresse. "
-                     "Verifie l'IP, que la machine est allumee et sur le reseau "
-                     "(Moonraker port 7125, ou OctoPrint avec cle API)."
-        }), 422
-
-    # Normalise l'hote (sans schema ni chemin) pour la webcam.
-    clean = host
-    for pre in ("http://", "https://"):
-        if clean.startswith(pre):
-            clean = clean[len(pre):]
-    clean = clean.split("/")[0]
-
-    printer = {
-        "id": uuid.uuid4().hex[:8],
-        "name": name,
-        "host": clean,
-        "type": ptype,
-        "base_url": base,
-        "apikey": apikey,
-        "webcam": webcam,
-    }
-    printers = load_printers()
-    printers.append(printer)
-    save_printers(printers)
-    return jsonify({
-        "id": printer["id"],
-        "name": printer["name"],
-        "host": printer["host"],
-        "type": ptype,
-        "webcam": default_webcam_url(printer),
-    })
-
-
-@app.route("/api/printers/<printer_id>", methods=["DELETE"])
-def api_delete(printer_id):
-    printers = [p for p in load_printers() if p["id"] != printer_id]
-    save_printers(printers)
-    _objects_cache.pop(printer_id, None)
-    return jsonify({"ok": True})
-
-
-@app.route("/api/status/<printer_id>")
-def api_status(printer_id):
-    printer = find_printer(printer_id)
-    if not printer:
-        return jsonify({"error": "Imprimante inconnue"}), 404
-    return jsonify(fetch_status(printer))
-
-
 def _moonraker_post(base, path):
     requests.post(f"{base}{path}", timeout=HTTP_TIMEOUT).raise_for_status()
 
@@ -640,191 +485,6 @@ def _moonraker_post(base, path):
 def _moonraker_gcode(base, script):
     requests.post(f"{base}/printer/gcode/script", params={"script": script},
                   timeout=HTTP_TIMEOUT).raise_for_status()
-
-
-@app.route("/api/control/<printer_id>", methods=["POST"])
-def api_control(printer_id):
-    """Actions sur l'imprimante (Moonraker) : pause/reprise/annuler/arret/prechauffe/refroidir."""
-    printer = find_printer(printer_id)
-    if not printer:
-        return jsonify({"error": "Imprimante inconnue"}), 404
-    if printer.get("type") != "moonraker":
-        return jsonify({"error": "Contrôles disponibles uniquement pour Moonraker"}), 422
-
-    data = request.get_json(force=True, silent=True) or {}
-    action = data.get("action")
-    base = printer["base_url"]
-
-    try:
-        if action == "pause":
-            _moonraker_post(base, "/printer/print/pause")
-        elif action == "resume":
-            _moonraker_post(base, "/printer/print/resume")
-        elif action == "cancel":
-            _moonraker_post(base, "/printer/print/cancel")
-        elif action == "estop":
-            _moonraker_post(base, "/printer/emergency_stop")
-        elif action == "cooldown":
-            _moonraker_gcode(base, "TURN_OFF_HEATERS")
-        elif action == "preheat":
-            preset = PREHEAT.get(data.get("material"))
-            if not preset:
-                return jsonify({"error": "Matériau inconnu"}), 400
-            _moonraker_gcode(base, f"SET_HEATER_TEMPERATURE HEATER=extruder TARGET={preset['ext']}")
-            _moonraker_gcode(base, f"SET_HEATER_TEMPERATURE HEATER=heater_bed TARGET={preset['bed']}")
-        else:
-            return jsonify({"error": "Action inconnue"}), 400
-    except requests.RequestException as e:
-        return jsonify({"error": f"Échec de la commande : {e}"}), 502
-
-    return jsonify({"ok": True})
-
-
-@app.route("/api/settings", methods=["GET"])
-def api_get_settings():
-    s = load_settings()
-    return jsonify({"discord_webhook": s.get("discord_webhook", ""),
-                    "alerts": s.get("alerts", {}), "appearance": s.get("appearance", {})})
-
-
-@app.route("/api/settings", methods=["POST"])
-def api_set_settings():
-    data = request.get_json(force=True, silent=True) or {}
-    s = load_settings()
-    if "discord_webhook" in data:  # chaine vide = suppression
-        s["discord_webhook"] = (data.get("discord_webhook") or "").strip()
-    if "alerts" in data and isinstance(data["alerts"], dict):
-        s["alerts"] = {**s["alerts"], **data["alerts"]}
-    if "appearance" in data and isinstance(data["appearance"], dict):
-        s["appearance"] = {**s["appearance"], **data["appearance"]}
-    save_settings(s)
-    return jsonify({"alerts": s["alerts"], "appearance": s["appearance"]})
-
-
-@app.route("/api/settings/test", methods=["POST"])
-def api_test_webhook():
-    data = request.get_json(force=True, silent=True) or {}
-    # On teste l'URL fournie si presente, sinon celle enregistree.
-    webhook = (data.get("discord_webhook") or "").strip() or load_settings().get("discord_webhook")
-    if not webhook:
-        return jsonify({"error": "Aucun webhook configuré"}), 400
-    ok = discord_send(webhook, "🔔 PrintWatch — Test", "Les alertes Discord fonctionnent !", 0x6C8CFF)
-    return (jsonify({"ok": True}) if ok else (jsonify({"error": "Envoi échoué"}), 502))
-
-
-@app.route("/api/stats/<printer_id>")
-def api_stats(printer_id):
-    printer = find_printer(printer_id)
-    if not printer:
-        return jsonify({"error": "Imprimante inconnue"}), 404
-    return jsonify(fetch_history(printer))
-
-
-@app.route("/api/stats/<printer_id>/csv")
-def api_stats_csv(printer_id):
-    """Export CSV (separateur ';' pour Excel FR) de tout l'historique."""
-    printer = find_printer(printer_id)
-    if not printer or printer.get("type") != "moonraker":
-        return Response(status=404)
-    import csv
-    import io
-    buf = io.StringIO()
-    w = csv.writer(buf, delimiter=";")
-    w.writerow(["date", "fichier", "statut", "duree_min", "filament_mm", "poids_g", "type"])
-    for j in _raw_history(printer["base_url"]):
-        nj = _normalize_job(j)
-        date = time.strftime("%Y-%m-%d %H:%M", time.localtime(nj["end_time"])) if nj["end_time"] else ""
-        w.writerow([date, nj["filename"], nj["status"], round((nj["duration"] or 0) / 60, 1),
-                    round(nj["filament"] or 0), nj["weight"] or "", nj["filament_type"] or ""])
-    fname = f"printwatch_{printer['name']}.csv".replace(" ", "_")
-    return Response("﻿" + buf.getvalue(), mimetype="text/csv",
-                    headers={"Content-Disposition": f"attachment; filename={fname}"})
-
-
-@app.route("/api/thumb/<printer_id>")
-def api_thumb(printer_id):
-    """Proxy d'une miniature de gcode stockee sur l'imprimante (Moonraker)."""
-    printer = find_printer(printer_id)
-    if not printer or printer.get("type") != "moonraker":
-        return Response(status=404)
-    path = request.args.get("path", "")
-    if not path:
-        return Response(status=404)
-    url = f"{printer['base_url']}/server/files/gcodes/{path}"
-    try:
-        r = requests.get(url, timeout=HTTP_TIMEOUT)
-        if not r.ok:
-            return Response(status=404)
-        return Response(r.content, content_type=r.headers.get("Content-Type", "image/png"))
-    except requests.RequestException:
-        return Response(status=502)
-
-
-@app.route("/api/webcam/<printer_id>")
-def api_webcam(printer_id):
-    """Proxy du flux MJPEG (utile si le navigateur bloque le contenu mixte ou le CORS)."""
-    printer = find_printer(printer_id)
-    if not printer:
-        return Response(status=404)
-    url = default_webcam_url(printer)
-
-    try:
-        upstream = requests.get(url, stream=True, timeout=HTTP_TIMEOUT)
-    except requests.RequestException:
-        return Response(status=502)
-
-    content_type = upstream.headers.get("Content-Type", "multipart/x-mixed-replace")
-
-    def generate():
-        try:
-            for chunk in upstream.iter_content(chunk_size=4096):
-                yield chunk
-        except requests.RequestException:
-            return
-
-    return Response(stream_with_context(generate()), content_type=content_type)
-
-
-# --------------------------------------------------------------------------
-# Layouts (panneaux libres)
-# --------------------------------------------------------------------------
-@app.route("/api/layouts", methods=["GET"])
-def api_get_layouts():
-    return jsonify(load_layouts())
-
-
-@app.route("/api/layouts", methods=["POST"])
-def api_save_layout():
-    data = request.get_json(force=True, silent=True) or {}
-    name = (data.get("name") or "").strip()
-    widgets = data.get("widgets") or []
-    if not name:
-        return jsonify({"error": "Nom requis"}), 400
-    d = load_layouts()
-    d["layouts"][name] = widgets
-    d["active"] = name
-    save_layouts(d)
-    return jsonify({"ok": True, "name": name})
-
-
-@app.route("/api/layouts/<path:name>", methods=["DELETE"])
-def api_delete_layout(name):
-    d = load_layouts()
-    d["layouts"].pop(name, None)
-    if d.get("active") == name:
-        d["active"] = next(iter(d["layouts"]), "")
-    save_layouts(d)
-    return jsonify({"ok": True})
-
-
-@app.route("/api/layouts/active", methods=["POST"])
-def api_set_active_layout():
-    data = request.get_json(force=True, silent=True) or {}
-    name = data.get("name", "")
-    d = load_layouts()
-    d["active"] = name
-    save_layouts(d)
-    return jsonify({"ok": True})
 
 
 # ==========================================================================

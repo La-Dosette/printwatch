@@ -1,9 +1,3 @@
-# Données runtime / spécifiques à l'utilisateur (générées au premier lancement)
-# settings.json contient le webhook Discord — NE JAMAIS committer
-printers.json
-settings.json
-layouts.json
-
 # Config locale de l'éditeur / preview
 .claude/settings.local.json
 
