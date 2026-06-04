@@ -1054,19 +1054,19 @@ def api_control_q():
             _moonraker_gcode(base, "TURN_OFF_HEATERS")
         elif action == "light_on":
             _try_moonraker_gcodes(base, [
-                "SET_PIN PIN=caselight VALUE=1",
-                "SET_PIN PIN=LED VALUE=1",
-                "SET_PIN PIN=light VALUE=1",
-                "SET_PIN PIN=chamber_light VALUE=1",
+                "SET_PIN PIN=caselight VALUE=0",
+                "SET_PIN PIN=LED VALUE=0",
+                "SET_PIN PIN=light VALUE=0",
+                "SET_PIN PIN=chamber_light VALUE=0",
                 "M355 S1",
                 "LED_ON",
             ])
         elif action == "light_off":
             _try_moonraker_gcodes(base, [
-                "SET_PIN PIN=caselight VALUE=0",
-                "SET_PIN PIN=LED VALUE=0",
-                "SET_PIN PIN=light VALUE=0",
-                "SET_PIN PIN=chamber_light VALUE=0",
+                "SET_PIN PIN=caselight VALUE=1",
+                "SET_PIN PIN=LED VALUE=1",
+                "SET_PIN PIN=light VALUE=1",
+                "SET_PIN PIN=chamber_light VALUE=1",
                 "M355 S0",
                 "LED_OFF",
             ])
