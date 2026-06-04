@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PrintWatch â€” Monitoring 3D</title>
+<title>PrintWatch — Monitoring 3D</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.svg">
 <style>
-  /* Logo clair â†’ inversÃ© en thÃ¨me sombre */
+  /* Logo clair → inversé en thème sombre */
   #brand-logo img{filter:invert(1) brightness(1.6);}
   body[data-theme="light"] #brand-logo img{filter:none;}
 </style>
@@ -63,7 +63,7 @@
     animation:cardIn .55s cubic-bezier(.16,1,.3,1) both;transition:transform .2s,box-shadow .2s}
   .card:hover{transform:translateY(-4px);box-shadow:0 18px 40px rgba(0,0,0,.5)}
   @keyframes cardIn{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
-  /* Bordure haute-lumiÃ¨re simple (plus de mask-composite coÃ»teux au repaint) */
+  /* Bordure haute-lumière simple (plus de mask-composite coûteux au repaint) */
   .card::before{content:"";position:absolute;inset:0;border-radius:22px;pointer-events:none;
     border-top:1px solid rgba(255,255,255,.1)}
 
@@ -86,7 +86,7 @@
   .webcam{background:#04060d;aspect-ratio:16/9;position:relative;overflow:hidden;
     display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px}
   .webcam img{width:100%;height:100%;object-fit:cover;display:block}
-  /* scan : animation par transform (compositÃ© GPU) au lieu de top (layout) */
+  /* scan : animation par transform (composité GPU) au lieu de top (layout) */
   .webcam .scan{position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);
     opacity:.45;animation:scan 3.5s linear infinite;will-change:transform}
   @keyframes scan{0%{transform:translateY(0)}100%{transform:translateY(2400%)}}
@@ -108,7 +108,7 @@
   .eta{font-size:12px;color:var(--muted);margin-top:6px;display:flex;align-items:center;gap:6px}
   .eta b{color:var(--txt);font-family:'JetBrains Mono',monospace;font-weight:500}
 
-  /* ---- TempÃ©ratures ---- */
+  /* ---- Températures ---- */
   .temps{display:flex;gap:10px;margin-bottom:14px}
   .temp{flex:1;background:var(--surface2);border:1px solid var(--glass-brd);border-radius:14px;padding:11px 12px;
     position:relative;overflow:hidden;contain:layout style paint}
@@ -325,7 +325,7 @@
     border-top:1px solid var(--glass-brd);padding-top:18px}
 
   /* =====================================================
-     PANEL BUILDER â€” panneaux libres
+     PANEL BUILDER — panneaux libres
      ===================================================== */
   #view-panels{padding:0 0 60px}
 
@@ -419,7 +419,7 @@
   .wp-type .lbl{font-size:12px;font-weight:600}
   .wp-type .desc{font-size:10px;color:var(--muted);margin-top:2px}
 
-  /* ---- Grille fantÃ´me en mode edition ---- */
+  /* ---- Grille fantôme en mode edition ---- */
   .ghost-cell{position:absolute;border-radius:8px;background:rgba(108,140,255,.18);
     border:2px dashed rgba(108,140,255,.5);pointer-events:none;transition:all .1s}
 
@@ -449,7 +449,7 @@
   body.radius-round .pw,body.radius-round .modal,body.radius-round .temp,body.radius-round .health,
   body.radius-round .webcam{border-radius:26px!important}
 
-  /* --- DensitÃ© (espacement) --- */
+  /* --- Densité (espacement) --- */
   body.dense .wrap{gap:14px}
   body.dense .body{padding:13px 15px}
   body.dense .card-head{padding:12px 15px 10px}
@@ -467,13 +467,13 @@
   .opt-grid select:focus,.opt-row select:focus{outline:none;border-color:var(--accent)}
 
   /* =====================================================
-     SKIN "ARCHIVE" â€” Style Typographique International (Swiss Style)
-     Papier crÃ¨me, encre noir doux, Archivo Black + Space Mono, filets fins,
-     zÃ©ro couleur, zÃ©ro ombre, grille stricte.
+     SKIN "ARCHIVE" — Style Typographique International (Swiss Style)
+     Papier crème, encre noir doux, Archivo Black + Space Mono, filets fins,
+     zéro couleur, zéro ombre, grille stricte.
      ===================================================== */
   body.skin-archive{
     --paper:#F3F0E9; --ink:#1A1A1A; --ink2:#6b685f; --line:#1A1A1A;
-    /* On remappe toute la palette â†’ tout Ã©lÃ©ment non ciblÃ© adopte encre/crÃ¨me/filet */
+    /* On remappe toute la palette → tout élément non ciblé adopte encre/crème/filet */
     --bg:#F3F0E9; --txt:#1A1A1A; --muted:#6b685f;
     --surface:#F3F0E9; --surface2:#F3F0E9; --glass-brd:#1A1A1A; --modal-bg:#F3F0E9;
     --accent:#1A1A1A; --accent2:#1A1A1A; --ok:#1A1A1A; --hot:#1A1A1A; --bed:#1A1A1A; --cham:#1A1A1A;
@@ -481,12 +481,12 @@
     font-family:'Space Mono','Courier New',monospace;
   }
   body.skin-archive .bg,body.skin-archive .grain{display:none!important}
-  /* Swiss Style = coins carrÃ©s, aucune ombre â€” bat tous les rÃ©glages d'arrondi */
+  /* Swiss Style = coins carrés, aucune ombre — bat tous les réglages d'arrondi */
   body.skin-archive *{border-radius:0!important;box-shadow:none!important;text-shadow:none!important}
-  /* Options de perso Â« NÃ©on Â» sans effet en mode Archive : on les masque */
+  /* Options de perso « Néon » sans effet en mode Archive : on les masque */
   body.skin-archive .neon-only{display:none!important}
 
-  /* â€” Header / bordereau â€” */
+  /* — Header / bordereau — */
   body.skin-archive header{background:var(--paper);border-bottom:1px solid var(--ink)}
   body.skin-archive .brand{font-family:'Archivo Black',sans-serif;text-transform:uppercase;letter-spacing:-.02em;color:var(--ink)}
   body.skin-archive #brand-name{font-family:'Archivo Black',sans-serif}
@@ -495,7 +495,7 @@
   body.skin-archive .brand small{font-family:'Space Mono';font-weight:700;border:1px solid var(--ink);border-radius:0;
     background:none;color:var(--ink)}
 
-  /* â€” Onglets : libellÃ©s mono soulignÃ©s, pas de pilule â€” */
+  /* — Onglets : libellés mono soulignés, pas de pilule — */
   body.skin-archive .tabs{background:none;border:1px solid var(--ink);border-radius:0;padding:0}
   body.skin-archive .tab{font-family:'Space Mono';font-weight:700;text-transform:uppercase;font-size:12px;color:var(--ink2);
     border-radius:0;padding:9px 16px;border-right:1px solid var(--ink)}
@@ -503,14 +503,14 @@
   body.skin-archive .tab.active{color:var(--paper);background:var(--ink)}
   body.skin-archive .tab-ind{display:none}
 
-  /* â€” Boutons â€” */
+  /* — Boutons — */
   body.skin-archive .btn{background:var(--ink);color:var(--paper);border-radius:0;font-family:'Space Mono';
     font-weight:700;text-transform:uppercase;letter-spacing:.03em}
   body.skin-archive .btn.ghost{background:none;border:1px solid var(--ink);color:var(--ink)}
   body.skin-archive .icon-btn{border-radius:0;border:1px solid var(--ink);background:none;color:var(--ink)}
   body.skin-archive .icon-btn:hover{background:var(--ink);color:var(--paper)}
 
-  /* â€” Cartes = spÃ©cimens d'archive â€” */
+  /* — Cartes = spécimens d'archive — */
   body.skin-archive .card{background:var(--paper);border:1px solid var(--ink);border-radius:0}
   body.skin-archive .card::before{display:none}
   body.skin-archive .card-head{border-bottom:1px solid var(--ink);padding:14px 16px}
@@ -524,18 +524,18 @@
   body.skin-archive .pill.printing .led::after{display:none}
   body.skin-archive .card-cfg,body.skin-archive .pw-del,body.skin-archive .card-foot button{color:var(--ink2)}
 
-  /* â€” Webcam â€” */
+  /* — Webcam — */
   body.skin-archive .webcam{background:var(--ink);color:var(--paper);border-bottom:1px solid var(--ink)}
   body.skin-archive .webcam .scan{display:none}
 
-  /* â€” Progression â€” */
+  /* — Progression — */
   body.skin-archive .ring .track{stroke:rgba(26,26,26,.12)}
   body.skin-archive .ring .fill{stroke:var(--ink)}
   body.skin-archive .pct,body.skin-archive .pw-pct{font-family:'Archivo Black';color:var(--ink)}
   body.skin-archive .filename,body.skin-archive .eta,body.skin-archive .eta b{font-family:'Space Mono';color:var(--ink)}
   body.skin-archive .eta b{font-weight:700}
 
-  /* â€” TempÃ©ratures : champs type formulaire Ã  filets â€” */
+  /* — Températures : champs type formulaire à filets — */
   body.skin-archive .temps{gap:0;border:1px solid var(--ink)}
   body.skin-archive .temp{background:none;border:0;border-left:1px solid var(--ink);border-radius:0;padding:10px 12px}
   body.skin-archive .temp:first-child{border-left:0}
@@ -545,21 +545,21 @@
   body.skin-archive .temp .tgt{font-family:'Space Mono';color:var(--ink2)}
   body.skin-archive .temp .heat{background:var(--ink)!important;opacity:.3}
 
-  /* â€” SantÃ© machine â€” */
+  /* — Santé machine — */
   body.skin-archive .health{background:none;border:1px solid var(--ink);border-radius:0}
   body.skin-archive .hstat span{font-family:'Space Mono';color:var(--ink2)}
   body.skin-archive .hstat b{font-family:'Archivo Black';color:var(--ink)}
   body.skin-archive .schip{border:1px solid var(--ink);border-radius:0;background:none;color:var(--ink);font-family:'Space Mono'}
   body.skin-archive .schip b{color:var(--ink)}
 
-  /* â€” ContrÃ´les â€” */
+  /* — Contrôles — */
   body.skin-archive .ctrl,body.skin-archive .ctrl-select{border:1px solid var(--ink);border-radius:0;background:none;
     color:var(--ink);font-family:'Space Mono';font-weight:700;text-transform:uppercase}
   body.skin-archive .ctrl:hover:not(:disabled){background:var(--ink);color:var(--paper)}
   body.skin-archive .ctrl.estop{color:var(--ink)}
   body.skin-archive .card-foot{border-top:1px solid var(--ink)}
 
-  /* â€” Statistiques â€” */
+  /* — Statistiques — */
   body.skin-archive .kpi,body.skin-archive .panel,body.skin-archive .job{background:var(--paper);
     border:1px solid var(--ink);border-radius:0}
   body.skin-archive .kpi::after{display:none}
@@ -573,7 +573,7 @@
   body.skin-archive .ft-bar>div{background:var(--ink)!important;border-radius:0}
   body.skin-archive .cost .total{color:var(--ink)}
 
-  /* â€” Panneaux libres â€” */
+  /* — Panneaux libres — */
   body.skin-archive .pw{background:var(--paper);border:1px solid var(--ink);border-radius:0}
   body.skin-archive .pw-header{border-bottom:1px solid var(--ink)}
   body.skin-archive .pw-title{font-family:'Space Mono';color:var(--ink2)}
@@ -584,7 +584,7 @@
   body.skin-archive .pt-btn.active{background:var(--ink);color:var(--paper)}
   body.skin-archive .wp-type{border-radius:0;border:1px solid var(--ink);background:none}
 
-  /* â€” Modales / champs â€” */
+  /* — Modales / champs — */
   body.skin-archive .overlay{background:rgba(26,26,26,.45)}
   body.skin-archive .modal{background:var(--paper);border:1px solid var(--ink);border-radius:0}
   body.skin-archive .modal h2{font-family:'Archivo Black';text-transform:uppercase}
@@ -596,7 +596,7 @@
   body.skin-archive .preset{border-radius:0}
   body.skin-archive .toast{background:var(--ink);color:var(--paper);border:1px solid var(--ink);border-radius:0;font-family:'Space Mono'}
 
-  /* â€” Empty states & divers â€” */
+  /* — Empty states & divers — */
   body.skin-archive .empty-state h3{font-family:'Archivo Black';text-transform:uppercase}
   body.skin-archive .empty-state,body.skin-archive .stat-empty{font-family:'Space Mono';color:var(--ink2)}
   body.skin-archive .universel,body.skin-archive .badge{color:var(--ink)}
@@ -619,10 +619,10 @@
     <span class="tab-ind" id="tab-ind"></span>
   </nav>
   <div class="head-actions">
-    <button class="icon-btn" id="compact-btn" title="Vue compacte" onclick="toggleCompact()">â–¦</button>
-    <button class="icon-btn" title="RÃ©glages & alertes Discord" onclick="openSettings()">âš™ï¸</button>
-    <button class="icon-btn neon-only" id="theme-btn" title="ThÃ¨me clair / sombre" onclick="toggleTheme()">ðŸŒ™</button>
-    <button class="icon-btn" title="Mode TV (plein Ã©cran)" onclick="toggleTV()">ðŸ“º</button>
+    <button class="icon-btn" id="compact-btn" title="Vue compacte" onclick="toggleCompact()">G</button>
+    <button class="icon-btn" title="Réglages & alertes Discord" onclick="openSettings()">SET</button>
+    <button class="icon-btn neon-only" id="theme-btn" title="Thème clair / sombre" onclick="toggleTheme()">D</button>
+    <button class="icon-btn" title="Mode TV (plein écran)" onclick="toggleTV()">TV</button>
     <button class="btn" onclick="openModal()">+ Ajouter</button>
   </div>
 </header>
@@ -632,13 +632,13 @@
 <div id="view-panels" style="display:none">
   <div class="panel-toolbar">
     <span class="pt-label">Layout :</span>
-    <select id="layout-select" onchange="switchLayout(this.value)"><option value="">â€” nouveau â€”</option></select>
-    <input class="pt-name" id="layout-name" placeholder="Nom du layoutâ€¦" maxlength="30">
-    <button class="pt-btn" onclick="saveCurrentLayout()">ðŸ’¾ Enregistrer</button>
-    <button class="pt-btn danger" onclick="deleteCurrentLayout()" title="Supprimer ce layout">ðŸ—‘</button>
+    <select id="layout-select" onchange="switchLayout(this.value)"><option value="">-- nouveau --</option></select>
+    <input class="pt-name" id="layout-name" placeholder="Nom du layout…" maxlength="30">
+    <button class="pt-btn" onclick="saveCurrentLayout()">Enregistrer</button>
+    <button class="pt-btn danger" onclick="deleteCurrentLayout()" title="Supprimer ce layout">Supprimer</button>
     <div class="pt-sep"></div>
-    <button class="pt-btn" onclick="openWidgetPicker()">ï¼‹ Widget</button>
-    <button class="pt-btn" id="edit-btn" onclick="toggleEditMode()">âœï¸ Ã‰diter</button>
+    <button class="pt-btn" onclick="openWidgetPicker()">+ Widget</button>
+    <button class="pt-btn" id="edit-btn" onclick="toggleEditMode()">Editer</button>
   </div>
   <div class="panel-grid-outer">
     <div class="panel-grid" id="panel-grid">
@@ -669,14 +669,14 @@
     <div class="err" id="f-err"></div>
     <div class="row-btns">
       <button class="btn ghost" onclick="closeModal()">Annuler</button>
-      <button class="btn" id="f-submit" onclick="addPrinter()">DÃ©tecter &amp; ajouter</button>
+      <button class="btn" id="f-submit" onclick="addPrinter()">Détecter &amp; ajouter</button>
     </div>
   </div>
 </div>
 
 <div class="overlay" id="jd-overlay">
   <div class="modal" style="width:min(560px,94vw)">
-    <h2 id="jd-name">DÃ©tail de l'impression</h2>
+    <h2 id="jd-name">Détail de l'impression</h2>
     <div class="sub" id="jd-status"></div>
     <div class="jd-grid">
       <img class="jd-thumb" id="jd-thumb" alt="" onerror="this.style.visibility='hidden'">
@@ -688,24 +688,24 @@
 
 <div class="overlay" id="set-overlay">
   <div class="modal">
-    <h2>RÃ©glages &amp; alertes</h2>
-    <div class="sub">ReÃ§ois une notification Discord quand une impression se termine, Ã©choue, etc.</div>
-    <label>Agent local (avancÃ©)</label>
+    <h2>Réglages &amp; alertes</h2>
+    <div class="sub">Reçois une notification Discord quand une impression se termine, échoue, etc.</div>
+    <label>Agent local (avancé)</label>
     <input id="set-agent" placeholder="http://localhost:8088">
-    <div class="hint">Adresse de l'agent qui relaie vers tes imprimantes. Vide = mÃªme origine (app locale).</div>
+    <div class="hint">Adresse de l'agent qui relaie vers tes imprimantes. Vide = même origine (app locale).</div>
     <label>Webhook Discord</label>
     <input id="set-webhook" placeholder="https://discord.com/api/webhooks/...">
-    <div class="hint">Discord â†’ ParamÃ¨tres du salon â†’ IntÃ©grations â†’ Webhooks â†’ Nouveau â†’ copier l'URL. Vide = dÃ©sactivÃ©.</div>
+    <div class="hint">Discord → Paramètres du salon → Intégrations → Webhooks → Nouveau → copier l'URL. Vide = désactivé.</div>
     <div class="alerts-toggles">
-      <label class="chk"><input type="checkbox" id="al-complete"> âœ… Fin d'impression</label>
-      <label class="chk"><input type="checkbox" id="al-error"> âŒ Erreurs</label>
-      <label class="chk"><input type="checkbox" id="al-offline"> âš ï¸ DÃ©connexion / reconnexion</label>
+      <label class="chk"><input type="checkbox" id="al-complete"> Fin d'impression</label>
+      <label class="chk"><input type="checkbox" id="al-error"> Erreurs</label>
+      <label class="chk"><input type="checkbox" id="al-offline"> Déconnexion / reconnexion</label>
     </div>
     <div class="section-sep">Apparence</div>
     <label>Nom du dashboard</label>
     <input id="set-name" placeholder="PrintWatch">
     <label>Logo (emoji ou URL d'image)</label>
-    <input id="set-logo" placeholder="ðŸ–¨ï¸  ou  https://exemple.com/logo.png">
+    <input id="set-logo" placeholder="Imprimante  ou  https://exemple.com/logo.png">
     <div class="neon-only">
       <label>Couleurs</label>
       <div class="appearance-grid">
@@ -719,44 +719,44 @@
       <div><label>Style</label>
         <select id="set-skin">
           <option value="archive">Archive (Swiss)</option>
-          <option value="neon">NÃ©on (original)</option>
+          <option value="neon">Néon (original)</option>
         </select></div>
       <div><label>Animations</label>
         <select id="set-anim">
-          <option value="full">ComplÃ¨tes</option>
-          <option value="reduced">RÃ©duites (perf)</option>
+          <option value="full">Complètes</option>
+          <option value="reduced">Réduites (perf)</option>
           <option value="none">Aucune (perf max)</option>
         </select></div>
-      <div><label>DensitÃ©</label>
+      <div><label>Densité</label>
         <select id="set-density">
           <option value="comfort">Confort</option>
           <option value="dense">Compacte</option>
         </select></div>
       <div class="neon-only"><label>Fond</label>
         <select id="set-bg">
-          <option value="color">DÃ©gradÃ© colorÃ©</option>
+          <option value="color">Dégradé coloré</option>
           <option value="subtle">Sobre</option>
           <option value="flat">Uni</option>
         </select></div>
       <div class="neon-only"><label>Police</label>
         <select id="set-font">
           <option value="rounded">Space Grotesk</option>
-          <option value="system">SystÃ¨me</option>
+          <option value="system">Système</option>
           <option value="mono-ui">Monospace</option>
         </select></div>
       <div class="neon-only"><label>Coins</label>
         <select id="set-radius">
           <option value="normal">Normaux</option>
-          <option value="sharp">CarrÃ©s</option>
-          <option value="round">TrÃ¨s arrondis</option>
+          <option value="sharp">Carrés</option>
+          <option value="round">Très arrondis</option>
         </select></div>
-      <div class="neon-only"><label>ThÃ¨me</label>
+      <div class="neon-only"><label>Thème</label>
         <select id="set-theme">
           <option value="dark">Sombre</option>
           <option value="light">Clair</option>
         </select></div>
     </div>
-    <div class="hint neon-only" style="margin-top:10px">ðŸ’¡ Pour rÃ©duire le lag : Animations Â« RÃ©duites Â» + Fond Â« Uni Â».</div>
+    <div class="hint neon-only" style="margin-top:10px">Astuce : pour réduire le lag, utilise animations "Réduites" + fond "Uni".</div>
     <div class="err" id="set-err"></div>
     <div class="row-btns">
       <button class="btn ghost" onclick="testWebhook()">Tester</button>
@@ -773,12 +773,12 @@
     <label>Imprimante</label>
     <select class="wp-printers" id="wp-printer" style="width:100%;font:inherit;padding:10px 12px;border-radius:10px;border:1px solid var(--glass-brd);background:var(--surface2);color:var(--txt)"></select>
     <div class="wp-types" id="wp-types">
-      <div class="wp-type" onclick="addWidget('progress')"><div class="ico">â­•</div><div class="lbl">Progression</div><div class="desc">Anneau + fichier + ETA</div></div>
-      <div class="wp-type" onclick="addWidget('temps')"><div class="ico">ðŸŒ¡ï¸</div><div class="lbl">TempÃ©ratures</div><div class="desc">Buse Â· plateau Â· chambre</div></div>
-      <div class="wp-type" onclick="addWidget('health')"><div class="ico">ðŸ’»</div><div class="lbl">SantÃ© machine</div><div class="desc">CPU Â· RAM Â· capteurs</div></div>
-      <div class="wp-type" onclick="addWidget('chart')"><div class="ico">ðŸ“ˆ</div><div class="lbl">Graphe</div><div class="desc">TempÃ©ratures temps rÃ©el</div></div>
-      <div class="wp-type" onclick="addWidget('webcam')"><div class="ico">ðŸ“·</div><div class="lbl">Webcam</div><div class="desc">Flux vidÃ©o live</div></div>
-      <div class="wp-type" onclick="addWidget('controls')"><div class="ico">ðŸŽ®</div><div class="lbl">ContrÃ´les</div><div class="desc">Pause Â· reprise Â· prÃ©chauffe</div></div>
+      <div class="wp-type" onclick="addWidget('progress')"><div class="ico">⭕</div><div class="lbl">Progression</div><div class="desc">Anneau + fichier + ETA</div></div>
+      <div class="wp-type" onclick="addWidget('temps')"><div class="ico">Temp</div><div class="lbl">Températures</div><div class="desc">Buse · plateau · chambre</div></div>
+      <div class="wp-type" onclick="addWidget('health')"><div class="ico">PC</div><div class="lbl">Santé machine</div><div class="desc">CPU · RAM · capteurs</div></div>
+      <div class="wp-type" onclick="addWidget('chart')"><div class="ico">Graph</div><div class="lbl">Graphe</div><div class="desc">Températures temps réel</div></div>
+      <div class="wp-type" onclick="addWidget('webcam')"><div class="ico">Cam</div><div class="lbl">Webcam</div><div class="desc">Flux vidéo live</div></div>
+      <div class="wp-type" onclick="addWidget('controls')"><div class="ico">Ctrl</div><div class="lbl">Contrôles</div><div class="desc">Pause · reprise · préchauffe</div></div>
     </div>
     <div class="row-btns" style="margin-top:18px">
       <button class="btn ghost" onclick="closeWidgetPicker()">Annuler</button>
@@ -795,10 +795,10 @@ const statCharts={}, statJobs={}, statByType={};
 let currentTab="dashboard";
 
 // ============================================================
-// COUCHE D'ACCÃˆS â€” agent local + stockage 100% localStorage
-// L'UI peut Ãªtre hÃ©bergÃ©e (github.io) ; les donnÃ©es restent sur l'appareil.
+// COUCHE D'ACCÈS — agent local + stockage 100% localStorage
+// L'UI peut être hébergée (github.io) ; les données restent sur l'appareil.
 // ============================================================
-// Base de l'agent : mÃªme origine en local, sinon localhost:8088 (ou rÃ©glage manuel).
+// Base de l'agent : même origine en local, sinon localhost:8088 (ou réglage manuel).
 const AGENT=(localStorage.getItem("pw-agent")||
   (/github\.io$/.test(location.hostname)?"http://localhost:8088":"")).replace(/\/$/,"");
 const api=p=>AGENT+p;
@@ -815,7 +815,7 @@ const LS={
   layouts:()=>{try{return JSON.parse(localStorage.getItem("pw-layouts")||'{"active":"","layouts":{}}')}catch(e){return{active:"",layouts:{}}}},
   setLayouts:l=>localStorage.setItem("pw-layouts",JSON.stringify(l)),
 };
-// Helpers requÃªte imprimante
+// Helpers requête imprimante
 const pq=p=>`host=${encodeURIComponent(p.host)}&type=${encodeURIComponent(p.type||"")}`+
   (p.serial?`&serial=${encodeURIComponent(p.serial)}`:"")+
   (p.apikey?`&apikey=${encodeURIComponent(p.apikey)}`:"");
@@ -829,26 +829,26 @@ const webcamUrl=p=>{
 const printersById={};  // id -> objet imprimante complet (host,type,serial,apikey,webcam)
 const lastStatus={};    // id -> dernier statut (panels + retour d'onglet)
 
-// Pousse la config de surveillance (alertes Discord) Ã  l'agent local
+// Pousse la config de surveillance (alertes Discord) à l'agent local
 function pushMonitor(){
   const payload={webhook:LS.webhook(),alerts:LS.alerts(),
     printers:LS.printers().map(p=>({id:p.id,name:p.name,host:p.host,type:p.type,
       serial:p.serial||"",apikey:p.apikey||""}))};
   fetch(api("/api/monitor"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}).catch(()=>{});
 }
-const STATE_LABELS={printing:"Impression",paused:"En pause",complete:"TerminÃ©",completed:"TerminÃ©",
-  standby:"PrÃªt",idle:"PrÃªt",ready:"PrÃªt",operational:"PrÃªt",busy:"OccupÃ©",heating:"Chauffe",
-  pausing:"Pauseâ€¦",cancel:"AnnulÃ©",cancelled:"AnnulÃ©",stopped:"ArrÃªtÃ©",
-  camera:"Caméra seule",error:"Erreur",offline:"Hors ligne",unknown:"â€”"};
+const STATE_LABELS={printing:"Impression",paused:"En pause",complete:"Terminé",completed:"Terminé",
+  standby:"Prêt",idle:"Prêt",ready:"Prêt",operational:"Prêt",busy:"Occupé",heating:"Chauffe",
+  pausing:"Pause…",cancel:"Annulé",cancelled:"Annulé",stopped:"Arrêté",
+  camera:"Caméra seule",error:"Erreur",offline:"Hors ligne",unknown:"—"};
 
-function fmtTime(s){if(s==null)return"â€”";s=Math.round(s);const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);
+function fmtTime(s){if(s==null)return"—";s=Math.round(s);const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);
   return h>0?h+"h"+String(m).padStart(2,"0"):m+" min";}
 function esc(s){return(s||"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
 // Animation de nombre (compteur fluide)
-function animNum(el,to,suffix="Â°"){
+function animNum(el,to,suffix="°"){
   const from=parseFloat(el.dataset.v||"0"); if(from===to){el.textContent=to+suffix;return;}
-  // Micro-variation (Â±1.5Â°) ou mode perf : on Ã©crit direct, pas de boucle rAF
+  // Micro-variation (±1.5°) ou mode perf : on écrit direct, pas de boucle rAF
   if(Math.abs(to-from)<1.5
      ||document.body.classList.contains("anim-none")
      ||document.body.classList.contains("anim-reduced")){
@@ -860,7 +860,7 @@ function animNum(el,to,suffix="Â°"){
 }
 
 async function loadPrinters(){
-  const list=LS.printers();               // â† depuis le stockage local de l'appareil
+  const list=LS.printers();               // ← depuis le stockage local de l'appareil
   allPrinters=list;
   Object.keys(printersById).forEach(id=>delete printersById[id]);
   list.forEach(p=>printersById[p.id]=p);
@@ -868,7 +868,7 @@ async function loadPrinters(){
   Object.keys(cards).forEach(id=>{if(!list.find(p=>p.id===id)){cards[id].remove();delete cards[id];delete charts[id];}});
   if(!list.length){
     if(!grid.querySelector(".empty-state"))
-      grid.innerHTML='<div class="empty-state"><div class="big">ðŸ–¨ï¸</div><h3>Aucune imprimante</h3><p>Clique sur Â« + Ajouter une imprimante Â» pour dÃ©marrer.</p></div>';
+      grid.innerHTML='<div class="empty-state"><div class="big">Imprimante</div><h3>Aucune imprimante</h3><p>Clique sur « + Ajouter une imprimante » pour démarrer.</p></div>';
     return;
   }
   const es=grid.querySelector(".empty-state"); if(es)es.remove();
@@ -881,16 +881,16 @@ function createCard(p,i){
   el.className="card"; el.style.animationDelay=(i*0.08)+"s";
   el.innerHTML=`
     <div class="card-head">
-      <span class="title"><span class="drag-handle" title="Glisser pour rÃ©ordonner">â ¿</span> ${esc(p.name)} <span class="type-chip">${p.type||"?"}</span></span>
+      <span class="title"><span class="drag-handle" title="Glisser pour réordonner">⠿</span> ${esc(p.name)} <span class="type-chip">${p.type||"?"}</span></span>
       <span style="display:flex;align-items:center;gap:6px">
-        <span class="pill" id="pill-${p.id}"><span class="led"></span><span class="st">â€¦</span></span>
+        <span class="pill" id="pill-${p.id}"><span class="led"></span><span class="st">…</span></span>
         <span class="cfg-wrap">
-          <button class="card-cfg" title="Personnaliser la carte" onclick="toggleCardMenu('${p.id}')">â‹¯</button>
+          <button class="card-cfg" title="Personnaliser la carte" onclick="toggleCardMenu('${p.id}')">⋯</button>
           <div class="cfg-menu" id="cfg-${p.id}">
             <label class="chk"><input type="checkbox" data-w="webcam" onchange="setWidget('${p.id}','webcam',this.checked)"> Webcam</label>
             <label class="chk"><input type="checkbox" data-w="chart" onchange="setWidget('${p.id}','chart',this.checked)"> Graphe temp.</label>
-            ${p.type==="moonraker"?`<label class="chk"><input type="checkbox" data-w="controls" onchange="setWidget('${p.id}','controls',this.checked)"> ContrÃ´les</label>
-            <label class="chk"><input type="checkbox" data-w="health" onchange="setWidget('${p.id}','health',this.checked)"> SantÃ© machine</label>`:""}
+            ${p.type==="moonraker"?`<label class="chk"><input type="checkbox" data-w="controls" onchange="setWidget('${p.id}','controls',this.checked)"> Contrôles</label>
+            <label class="chk"><input type="checkbox" data-w="health" onchange="setWidget('${p.id}','health',this.checked)"> Santé machine</label>`:""}
           </div>
         </span>
       </span>
@@ -909,41 +909,41 @@ function createCard(p,i){
           <div class="pct" id="pct-${p.id}">0%</div>
         </div>
         <div class="prog-info">
-          <div class="filename empty" id="file-${p.id}">En attenteâ€¦</div>
-          <div class="eta">â± restant : <b id="eta-${p.id}">â€”</b></div>
+          <div class="filename empty" id="file-${p.id}">En attente…</div>
+          <div class="eta">Temps restant : <b id="eta-${p.id}">—</b></div>
         </div>
       </div>
       <div class="temps">
         <div class="temp extruder"><div class="lbl"><span class="ico"></span>Buse</div>
-          <div class="val num" id="te-${p.id}">â€”</div><div class="tgt" id="tge-${p.id}"></div><div class="heat" id="he-${p.id}"></div></div>
+          <div class="val num" id="te-${p.id}">—</div><div class="tgt" id="tge-${p.id}"></div><div class="heat" id="he-${p.id}"></div></div>
         <div class="temp bed"><div class="lbl"><span class="ico"></span>Plateau</div>
-          <div class="val num" id="tb-${p.id}">â€”</div><div class="tgt" id="tgb-${p.id}"></div><div class="heat" id="hb-${p.id}"></div></div>
+          <div class="val num" id="tb-${p.id}">—</div><div class="tgt" id="tgb-${p.id}"></div><div class="heat" id="hb-${p.id}"></div></div>
         <div class="temp chamber" id="cb-${p.id}" style="display:none"><div class="lbl"><span class="ico"></span>Chambre</div>
-          <div class="val num" id="tc-${p.id}">â€”</div><div class="tgt" id="tgc-${p.id}"></div><div class="heat" id="hc-${p.id}"></div></div>
+          <div class="val num" id="tc-${p.id}">—</div><div class="tgt" id="tgc-${p.id}"></div><div class="heat" id="hc-${p.id}"></div></div>
       </div>
       ${p.type==="moonraker"?`
       <div class="health" id="health-${p.id}">
         <div class="health-grid">
-          <div class="hstat"><span>CPU</span><b id="cpu-${p.id}">â€”</b></div>
-          <div class="hstat"><span>CPU Â°C</span><b id="cput-${p.id}">â€”</b></div>
-          <div class="hstat"><span>RAM</span><b id="ram-${p.id}">â€”</b></div>
-          <div class="hstat"><span>Uptime</span><b id="up-${p.id}">â€”</b></div>
+          <div class="hstat"><span>CPU</span><b id="cpu-${p.id}">—</b></div>
+          <div class="hstat"><span>CPU °C</span><b id="cput-${p.id}">—</b></div>
+          <div class="hstat"><span>RAM</span><b id="ram-${p.id}">—</b></div>
+          <div class="hstat"><span>Uptime</span><b id="up-${p.id}">—</b></div>
         </div>
         <div class="sensors" id="sens-${p.id}"></div>
       </div>`:""}
       <div class="chart-box"><canvas id="chart-${p.id}"></canvas></div>
       ${p.type==="moonraker"?`
       <div class="controls">
-        <button class="ctrl" id="pause-${p.id}" onclick="control('${p.id}','pause')">â¸ Pause</button>
-        <button class="ctrl" id="resume-${p.id}" onclick="control('${p.id}','resume')" style="display:none">â–¶ Reprendre</button>
-        <button class="ctrl danger" id="cancel-${p.id}" onclick="control('${p.id}','cancel',null,true)">âœ• Annuler</button>
+        <button class="ctrl" id="pause-${p.id}" onclick="control('${p.id}','pause')">Pause</button>
+        <button class="ctrl" id="resume-${p.id}" onclick="control('${p.id}','resume')" style="display:none">Reprendre</button>
+        <button class="ctrl danger" id="cancel-${p.id}" onclick="control('${p.id}','cancel',null,true)">Annuler</button>
       </div>
       <div class="controls">
         <select class="ctrl-select" id="ph-${p.id}" onchange="if(this.value){control('${p.id}','preheat',this.value);this.value=''}">
-          <option value="">ðŸ”¥ PrÃ©chauffeâ€¦</option><option>PLA</option><option>PETG</option><option>ABS</option>
+          <option value="">Préchauffe...</option><option>PLA</option><option>PETG</option><option>ABS</option>
         </select>
-        <button class="ctrl" onclick="control('${p.id}','cooldown')">â„ Refroidir</button>
-        <button class="ctrl estop danger" onclick="control('${p.id}','estop',null,true)">ðŸ›‘ ArrÃªt</button>
+        <button class="ctrl" onclick="control('${p.id}','cooldown')">Refroidir</button>
+        <button class="ctrl estop danger" onclick="control('${p.id}','estop',null,true)">Arrêt</button>
       </div>
       <div class="controls">
         <button class="ctrl" onclick="control('${p.id}','light_on')">Lumière ON</button>
@@ -954,7 +954,7 @@ function createCard(p,i){
         <button class="ctrl" onclick="openCamera('${p.id}')">Caméra ouvrir</button>
       </div>
     </div>
-    <div class="card-foot"><button onclick="removePrinter('${p.id}','${esc(p.name)}')">âœ• Supprimer</button></div>`;
+    <div class="card-foot"><button onclick="removePrinter('${p.id}','${esc(p.name)}')">x Supprimer</button></div>`;
   document.getElementById("grid").appendChild(el);
   cards[p.id]=el;
   setupDnd(el,p.id);
@@ -999,7 +999,7 @@ function openCamera(id){
   window.open(url,"_blank","noopener");
 }
 
-// Mappage couleur â†’ encre/gris quand le skin Archive est actif (canvas non stylable en CSS)
+// Mappage couleur → encre/gris quand le skin Archive est actif (canvas non stylable en CSS)
 const ARCH_MAP={"#ff6b6b":"#1A1A1A","#ff9f43":"#6b685f","#ffd36b":"#b0ab9b",
   "#6c8cff":"#1A1A1A","#ff8c42":"#6b685f"};
 function aCol(c){return document.body.classList.contains("skin-archive")?(ARCH_MAP[c]||"#1A1A1A"):c;}
@@ -1010,7 +1010,7 @@ function mkDs(label,color,hidden){
 }
 
 async function poll(){
-  // Onglet navigateur en arriÃ¨re-plan : on ne sollicite rien (Ã©conomie CPU + rÃ©seau)
+  // Onglet navigateur en arrière-plan : on ne sollicite rien (économie CPU + réseau)
   if(document.hidden)return;
   await Promise.all(Object.keys(cards).map(async id=>{
     const p=printersById[id]; if(!p)return;
@@ -1027,7 +1027,7 @@ function updateCard(id,s){
 
   const f=document.getElementById("file-"+id);
   if(s.filename){f.textContent=s.filename;f.className="filename";}
-  else{f.textContent=s.error||"En attenteâ€¦";f.className="filename empty";}
+  else{f.textContent=s.error||"En attente…";f.className="filename empty";}
 
   const pct=Math.round((s.progress||0)*100);
   document.getElementById("pct-"+id).textContent=pct+"%";
@@ -1056,9 +1056,9 @@ function updateCard(id,s){
 function setTemp(id,k,o){
   const v={e:"te-",b:"tb-",c:"tc-"}[k],g={e:"tge-",b:"tgb-",c:"tgc-"}[k],ht={e:"he-",b:"hb-",c:"hc-"}[k];
   const ve=document.getElementById(v+id);
-  if(!o){ve.textContent="â€”";document.getElementById(g+id).textContent="";return;}
+  if(!o){ve.textContent="—";document.getElementById(g+id).textContent="";return;}
   animNum(ve,o.actual);
-  document.getElementById(g+id).textContent=o.target>0?"cible "+o.target+"Â°":"";
+  document.getElementById(g+id).textContent=o.target>0?"cible "+o.target+"°":"";
   // barre de chauffe : ratio actuel/cible
   const ratio=o.target>0?Math.min(1,o.actual/o.target):(o.actual>40?Math.min(1,o.actual/250):0);
   document.getElementById(ht+id).style.transform="scaleX("+ratio+")";
@@ -1074,24 +1074,24 @@ async function addPrinter(){
   const host=val("f-host").trim(), name=val("f-name").trim(),
         webcam=val("f-webcam").trim(), serial=val("f-serial").trim(), apikey=val("f-apikey").trim();
   if(!host){err.textContent="Entre une adresse IP.";return;}
-  btn.disabled=true;btn.innerHTML='<span class="spin"></span>DÃ©tectionâ€¦';
+  btn.disabled=true;btn.innerHTML='<span class="spin"></span>Détection…';
   try{
-    // DÃ©tection via l'agent local (probe Moonraker/OctoPrint)
+    // Détection via l'agent local (probe Moonraker/OctoPrint)
     const r=await fetch(api("/api/detect?host="+encodeURIComponent(host)+(apikey?"&apikey="+encodeURIComponent(apikey):"")));
     const d=await r.json();
-    if(!r.ok){err.textContent=d.error||"Aucune imprimante dÃ©tectÃ©e. L'agent local tourne-t-il ?";return;}
+    if(!r.ok){err.textContent=d.error||"Aucune imprimante détectée. L'agent local tourne-t-il ?";return;}
     const printer={id:"p"+Date.now().toString(36)+Math.random().toString(36).slice(2,5),
       name:name||d.host,host:d.host,type:d.type,serial,apikey,webcam:webcam||d.webcam||""};
     const list=LS.printers(); list.push(printer); LS.setPrinters(list);
     pushMonitor();
     closeModal();await loadPrinters();
   }catch(e){err.textContent="Agent injoignable. Lance l'agent local (python app.py).";}
-  finally{btn.disabled=false;btn.innerHTML="DÃ©tecter &amp; ajouter";}
+  finally{btn.disabled=false;btn.innerHTML="Détecter &amp; ajouter";}
 }
 function val(id){return document.getElementById(id).value;}
 
 async function removePrinter(id,name){
-  if(!confirm("Supprimer Â« "+name+" Â» ?"))return;
+  if(!confirm("Supprimer « "+name+" » ?"))return;
   LS.setPrinters(LS.printers().filter(p=>p.id!==id));
   pushMonitor();
   await loadPrinters();
@@ -1107,11 +1107,11 @@ function switchTab(name){
   moveIndicator();
   if(name==="stats")loadStats();
   if(name==="dashboard"){
-    // Redessine les graphes restÃ©s figÃ©s pendant qu'on Ã©tait ailleurs
+    // Redessine les graphes restés figés pendant qu'on était ailleurs
     Object.values(charts).forEach(c=>c.update("none"));
   }
   if(name==="panels"){
-    // requestAnimationFrame : attend que le navigateur ait calculÃ© les dimensions
+    // requestAnimationFrame : attend que le navigateur ait calculé les dimensions
     requestAnimationFrame(()=>{
       renderPanelGrid();
       Object.entries(lastStatus).forEach(([pid,s])=>updatePanelWidgets(pid,s));
@@ -1125,35 +1125,35 @@ function moveIndicator(){
 }
 
 // ---- Formatteurs stats ----
-function fmtDur(s){if(!s)return"â€”";s=Math.round(s);const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);
+function fmtDur(s){if(!s)return"—";s=Math.round(s);const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);
   if(h>=24){const d=Math.floor(h/24);return d+"j "+(h%24)+"h";}return h>0?h+"h "+String(m).padStart(2,"0"):m+" min";}
 function fmtFil(mm){if(!mm)return"0 m";const m=mm/1000;return m>=1000?(m/1000).toFixed(2)+" km":Math.round(m)+" m";}
-function fmtDate(ts){if(!ts)return"â€”";const d=new Date(ts*1000);
+function fmtDate(ts){if(!ts)return"—";const d=new Date(ts*1000);
   return d.toLocaleDateString("fr-FR",{day:"2-digit",month:"short"})+" "+d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});}
-const ST_LBL={completed:"TerminÃ©",cancelled:"AnnulÃ©",error:"Erreur",in_progress:"En cours",
-  interrupted:"Interrompu",klippy_shutdown:"ArrÃªt Klipper",klippy_disconnect:"DÃ©connectÃ©"};
+const ST_LBL={completed:"Terminé",cancelled:"Annulé",error:"Erreur",in_progress:"En cours",
+  interrupted:"Interrompu",klippy_shutdown:"Arrêt Klipper",klippy_disconnect:"Déconnecté"};
 
 async function loadStats(){
   const printers=LS.printers();
   const box=document.getElementById("stats");
-  if(!printers.length){box.innerHTML='<div class="stat-empty">Aucune imprimante Ã  analyser.</div>';return;}
+  if(!printers.length){box.innerHTML='<div class="stat-empty">Aucune imprimante à analyser.</div>';return;}
   box.innerHTML="";
   for(const p of printers){
     const block=document.createElement("div");block.className="stat-block";
     block.innerHTML=`
       <div class="stat-head block-head">
         <span>${esc(p.name)} <span class="type-chip">${p.type||"?"}</span></span>
-        <button class="csv-btn" onclick="window.location='${api("/api/stats.csv?"+pq(p))}'">â¬‡ Export CSV</button>
+        <button class="csv-btn" onclick="window.location='${api("/api/stats.csv?"+pq(p))}'">⬇ Export CSV</button>
       </div>
       <div class="kpis" id="kpi-${p.id}"></div>
       <div class="panels">
-        <div class="panel"><h4>ActivitÃ© (30 derniers jours)</h4><div class="activity-box"><canvas id="act-${p.id}"></canvas></div></div>
+        <div class="panel"><h4>Activité (30 derniers jours)</h4><div class="activity-box"><canvas id="act-${p.id}"></canvas></div></div>
         <div class="panel"><h4>Filament par type</h4><div class="ftype" id="ft-${p.id}"></div>
-          <div class="cost"><label>Prix â‚¬/kg</label><input type="number" id="price-${p.id}" value="25" min="0" oninput="recost('${p.id}')">
-            <span class="total" id="cost-${p.id}">â€”</span></div></div>
+          <div class="cost"><label>Prix €/kg</label><input type="number" id="price-${p.id}" value="25" min="0" oninput="recost('${p.id}')">
+            <span class="total" id="cost-${p.id}">—</span></div></div>
       </div>
-      <div class="jobs-title">Impressions rÃ©centes</div>
-      <div class="jobs" id="jobs-${p.id}"><div class="stat-empty">Chargementâ€¦</div></div>`;
+      <div class="jobs-title">Impressions récentes</div>
+      <div class="jobs" id="jobs-${p.id}"><div class="stat-empty">Chargement…</div></div>`;
     box.appendChild(block);
     try{renderStats(p,await (await fetch(api("/api/stats?"+pq(p)))).json());}
     catch(e){document.getElementById("jobs-"+p.id).innerHTML='<div class="stat-empty">Erreur de chargement.</div>';}
@@ -1168,12 +1168,12 @@ function renderStats(p,s){
   }
   const rate=s.success_rate,C=2*Math.PI*24,off=rate==null?C:C*(1-rate/100);
   document.getElementById("kpi-"+p.id).innerHTML=`
-    <div class="kpi k-jobs"><div class="klbl">Impressions</div><div class="kval">${t.total_jobs||0}</div><div class="ksub">total cumulÃ©</div></div>
+    <div class="kpi k-jobs"><div class="klbl">Impressions</div><div class="kval">${t.total_jobs||0}</div><div class="ksub">total cumulé</div></div>
     <div class="kpi k-time"><div class="klbl">Temps d'impression</div><div class="kval">${fmtDur(t.total_time)}</div><div class="ksub">toutes impressions</div></div>
-    <div class="kpi k-fil"><div class="klbl">Filament</div><div class="kval">${fmtFil(t.total_filament)}</div><div class="ksub">consommÃ© au total</div></div>
+    <div class="kpi k-fil"><div class="klbl">Filament</div><div class="kval">${fmtFil(t.total_filament)}</div><div class="ksub">consommé au total</div></div>
     <div class="kpi k-rate">
       <div class="ring-rate"><svg width="54" height="54"><circle class="t" cx="27" cy="27" r="24"/><circle class="f" cx="27" cy="27" r="24" stroke-dasharray="${C}" stroke-dashoffset="${C}"/></svg></div>
-      <div class="klbl">Taux de rÃ©ussite</div><div class="kval">${rate==null?"â€”":rate+"%"}</div><div class="ksub">25 derniers jobs</div></div>
+      <div class="klbl">Taux de réussite</div><div class="kval">${rate==null?"—":rate+"%"}</div><div class="ksub">25 derniers jobs</div></div>
     <div class="kpi k-long"><div class="klbl">Plus longue</div><div class="kval">${fmtDur(t.longest_print)}</div><div class="ksub">record</div></div>`;
   requestAnimationFrame(()=>{const f=document.querySelector("#kpi-"+p.id+" .ring-rate .f");if(f)f.style.strokeDashoffset=off;});
 
@@ -1182,7 +1182,7 @@ function renderStats(p,s){
 
   const jb=document.getElementById("jobs-"+p.id);
   statJobs[p.id]=s.jobs||[];
-  if(!s.jobs.length){jb.innerHTML='<div class="stat-empty">Aucune impression enregistrÃ©e.</div>';return;}
+  if(!s.jobs.length){jb.innerHTML='<div class="stat-empty">Aucune impression enregistrée.</div>';return;}
   jb.innerHTML="";
   s.jobs.forEach((j,i)=>{
     const el=document.createElement("div");el.className="job";el.style.animationDelay=(i*0.04)+"s";
@@ -1191,10 +1191,10 @@ function renderStats(p,s){
       ?`<img class="thumb" src="${api("/api/thumb?"+pq(p)+"&path="+encodeURIComponent(j.thumb))}" onerror="this.style.visibility='hidden'">`
       :`<div class="thumb"></div>`;
     const meta=["<span>"+fmtDate(j.end_time)+"</span>"];
-    if(j.duration)meta.push("<span>â± "+fmtDur(j.duration)+"</span>");
+    if(j.duration)meta.push("<span>Temps "+fmtDur(j.duration)+"</span>");
     if(j.weight)meta.push("<span>"+j.weight.toFixed(1)+" g</span>");
     if(j.filament_type)meta.push("<span>"+esc(j.filament_type)+"</span>");
-    el.innerHTML=`${thumb}<div class="jmain"><div class="jname">${esc(j.filename||"â€”")}</div>
+    el.innerHTML=`${thumb}<div class="jmain"><div class="jname">${esc(j.filename||"—")}</div>
       <div class="jmeta">${meta.join("")}</div></div>
       <span class="jbadge ${j.status}">${ST_LBL[j.status]||j.status}</span>`;
     jb.appendChild(el);
@@ -1211,7 +1211,7 @@ function renderActivity(p,act){
       backgroundColor:document.body.classList.contains("skin-archive")?"#1A1A1A":"rgba(108,140,255,.6)",
       borderRadius:document.body.classList.contains("skin-archive")?0:4,maxBarThickness:14}]},
     options:{responsive:true,maintainAspectRatio:false,animation:{duration:600},
-      plugins:{legend:{display:false},tooltip:{callbacks:{afterLabel:c=>"dont "+act[c.dataIndex].completed+" rÃ©ussies"}}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{afterLabel:c=>"dont "+act[c.dataIndex].completed+" réussies"}}},
       scales:{x:{ticks:{color:"#828aa0",font:{size:9},maxRotation:0,autoSkip:true,maxTicksLimit:8},grid:{display:false}},
         y:{beginAtZero:true,ticks:{color:"#828aa0",font:{size:9},precision:0},grid:{color:"rgba(128,128,128,.12)"}}}}});
 }
@@ -1223,7 +1223,7 @@ function renderFilament(p,byType){
   const box=document.getElementById("ft-"+p.id); if(!box)return;
   statByType[p.id]=byType;
   const entries=Object.entries(byType).sort((a,b)=>b[1]-a[1]);
-  if(!entries.length){box.innerHTML='<div class="stat-empty" style="padding:14px">Aucune donnÃ©e.</div>';recost(p.id);return;}
+  if(!entries.length){box.innerHTML='<div class="stat-empty" style="padding:14px">Aucune donnée.</div>';recost(p.id);return;}
   const max=entries[0][1];
   box.innerHTML=entries.map(([t,g])=>{
     const kg=g/1000, disp=kg>=1?kg.toFixed(2)+" kg":Math.round(g)+" g";
@@ -1236,7 +1236,7 @@ function renderFilament(p,byType){
 function recost(id){
   const price=parseFloat(document.getElementById("price-"+id).value)||0;
   const total=Object.values(statByType[id]||{}).reduce((a,g)=>a+g,0)/1000*price;
-  document.getElementById("cost-"+id).textContent=total>0?"â‰ˆ "+total.toFixed(2)+" â‚¬":"â€”";
+  document.getElementById("cost-"+id).textContent=total>0?"≈ "+total.toFixed(2)+" €":"—";
 }
 
 // Modale detail d'un job
@@ -1250,25 +1250,25 @@ function openJob(p,i){
   if(!j.thumb)th.style.visibility="hidden";
   const m=j.meta||{}, rows=[];
   const add=(k,v)=>{if(v!==undefined&&v!==null&&v!=="")rows.push(`<div class="jd-row"><span>${k}</span><b>${v}</b></div>`);};
-  add("DurÃ©e",fmtDur(j.duration));
-  if(m.est_time)add("EstimÃ©e (slicer)",fmtDur(m.est_time));
+  add("Durée",fmtDur(j.duration));
+  if(m.est_time)add("Estimée (slicer)",fmtDur(m.est_time));
   add("Filament",j.weight?j.weight.toFixed(1)+" g":null);
   if(m.length)add("Longueur",(m.length/1000).toFixed(2)+" m");
   add("Type",j.filament_type);
   if(m.layers)add("Couches",m.layers);
   if(m.height)add("Hauteur",m.height+" mm");
-  if(m.layer_height)add("Ã‰paisseur couche",m.layer_height+" mm");
+  if(m.layer_height)add("Épaisseur couche",m.layer_height+" mm");
   if(m.nozzle)add("Buse",m.nozzle+" mm");
   if(m.slicer)add("Slicer",m.slicer+(m.slicer_version?" "+m.slicer_version:""));
-  document.getElementById("jd-rows").innerHTML=rows.join("")||'<div class="stat-empty">Pas de mÃ©tadonnÃ©es.</div>';
+  document.getElementById("jd-rows").innerHTML=rows.join("")||'<div class="stat-empty">Pas de métadonnées.</div>';
   document.getElementById("jd-overlay").classList.add("show");
 }
 function closeJob(){document.getElementById("jd-overlay").classList.remove("show");}
 
-// ---- ContrÃ´les imprimante ----
+// ---- Contrôles imprimante ----
 function updateControls(id,state,online){
   const pause=document.getElementById("pause-"+id);
-  if(!pause)return; // pas de contrÃ´les (OctoPrint)
+  if(!pause)return; // pas de contrôles (OctoPrint)
   const resume=document.getElementById("resume-"+id),cancel=document.getElementById("cancel-"+id);
   const printing=state==="printing",paused=state==="paused";
   pause.style.display=paused?"none":"";
@@ -1279,21 +1279,21 @@ function updateControls(id,state,online){
 }
 
 async function control(id,action,material,confirmNeeded){
-  const verbs={cancel:"annuler l'impression en cours",estop:"dÃ©clencher l'ARRÃŠT D'URGENCE"};
+  const verbs={cancel:"annuler l'impression en cours",estop:"déclencher l'ARRÊT D'URGENCE"};
   if(confirmNeeded && !confirm("Confirmer : "+verbs[action]+" ?"))return;
   const p=printersById[id]; if(!p)return;
   try{
     const r=await fetch(api("/api/control?"+pq(p)),{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({action,material})});
     const d=await r.json();
-    if(!r.ok){toast(d.error||"Ã‰chec de la commande",true);return;}
-    const msg={pause:"â¸ Mise en pause",resume:"â–¶ Reprise",cancel:"Impression annulÃ©e",
-      estop:"ðŸ›‘ ArrÃªt d'urgence envoyÃ©",cooldown:"â„ Chauffes coupÃ©es",
+    if(!r.ok){toast(d.error||"Échec de la commande",true);return;}
+    const msg={pause:"Mise en pause",resume:"Reprise",cancel:"Impression annulée",
+      estop:"Arrêt d'urgence envoyé",cooldown:"Chauffes coupées",
       light_on:"Lumière allumée",light_off:"Lumière éteinte",
-      preheat:"ðŸ”¥ PrÃ©chauffe "+(material||"")};
-    toast(msg[action]||"Commande envoyÃ©e");
+      preheat:"Préchauffe "+(material||"")};
+    toast(msg[action]||"Commande envoyée");
     setTimeout(poll,600);
-  }catch(e){toast("Erreur rÃ©seau",true);}
+  }catch(e){toast("Erreur réseau",true);}
 }
 
 function toast(msg,isErr){
@@ -1302,15 +1302,15 @@ function toast(msg,isErr){
   clearTimeout(t._t);t._t=setTimeout(()=>{t.className="toast"+(isErr?" err":"");},2900);
 }
 
-// ---- SantÃ© machine ----
+// ---- Santé machine ----
 function updateHealth(id,sys,sensors){
   const cpu=document.getElementById("cpu-"+id); if(!cpu)return;
-  cpu.textContent=sys.cpu!=null?sys.cpu+" %":"â€”";
-  document.getElementById("cput-"+id).textContent=sys.cpu_temp?sys.cpu_temp+"Â°":"â€”";
-  document.getElementById("ram-"+id).textContent=sys.mem_pct!=null?sys.mem_pct+" %":"â€”";
-  document.getElementById("up-"+id).textContent=sys.uptime?fmtDur(sys.uptime):"â€”";
+  cpu.textContent=sys.cpu!=null?sys.cpu+" %":"—";
+  document.getElementById("cput-"+id).textContent=sys.cpu_temp?sys.cpu_temp+"°":"—";
+  document.getElementById("ram-"+id).textContent=sys.mem_pct!=null?sys.mem_pct+" %":"—";
+  document.getElementById("up-"+id).textContent=sys.uptime?fmtDur(sys.uptime):"—";
   document.getElementById("sens-"+id).innerHTML=
-    Object.entries(sensors).map(([k,v])=>`<span class="schip">${esc(k)} <b>${v}Â°</b></span>`).join("");
+    Object.entries(sensors).map(([k,v])=>`<span class="schip">${esc(k)} <b>${v}°</b></span>`).join("");
 }
 
 // ---- Mode compact ----
@@ -1321,7 +1321,7 @@ function toggleCompact(){
   document.getElementById("compact-btn").style.color=on?"var(--accent)":"";
 }
 
-// ---- Menu carte + visibilitÃ© des widgets ----
+// ---- Menu carte + visibilité des widgets ----
 function toggleCardMenu(id){
   const m=document.getElementById("cfg-"+id),open=m.classList.contains("show");
   document.querySelectorAll(".cfg-menu.show").forEach(x=>x.classList.remove("show"));
@@ -1340,14 +1340,14 @@ function applyCardWidgets(id){
   let all={}; try{all=JSON.parse(localStorage.getItem("pw-widgets")||"{}");}catch(e){}
   const w=all[id]||{},card=cards[id];
   ["webcam","chart","controls","health"].forEach(k=>{
-    const vis=w[k]!==false; // visible par dÃ©faut
+    const vis=w[k]!==false; // visible par défaut
     card.classList.toggle("hide-"+k,!vis);
     const cb=card.querySelector('.cfg-menu input[data-w="'+k+'"]');
     if(cb)cb.checked=vis;
   });
 }
 
-// ---- Glisser-dÃ©poser (rÃ©ordonner les cartes) ----
+// ---- Glisser-déposer (réordonner les cartes) ----
 let dragId=null;
 function setupDnd(el,id){
   el.dataset.pid=id;
@@ -1381,7 +1381,7 @@ function applyAppearance(a){
   if(a.accent2)document.documentElement.style.setProperty("--accent2",a.accent2);
   const name=a.name||"PrintWatch";
   document.getElementById("brand-name").textContent=name;
-  document.title=name+" â€” Monitoring 3D";
+  document.title=name+" — Monitoring 3D";
   const logo=document.getElementById("brand-logo");
   if(a.logo){
     logo.innerHTML=/^(https?:|\/)/.test(a.logo)
@@ -1392,7 +1392,7 @@ function applyAppearance(a){
   const b=document.body;
   b.classList.remove("anim-full","anim-reduced","anim-none","bg-color","bg-subtle","bg-flat",
     "font-rounded","font-system","font-mono-ui","radius-normal","radius-sharp","radius-round","dense");
-  // Skin (identitÃ© visuelle) : Archive (Swiss Style) ou NÃ©on (original)
+  // Skin (identité visuelle) : Archive (Swiss Style) ou Néon (original)
   const skin=a.skin||localStorage.getItem("pw-skin")||"archive";
   b.classList.toggle("skin-archive",skin==="archive");
   localStorage.setItem("pw-skin",skin);
@@ -1409,7 +1409,7 @@ function applyAppearance(a){
   }
 }
 
-// ---- RÃ©glages / alertes Discord ----
+// ---- Réglages / alertes Discord ----
 async function openSettings(){
   document.getElementById("set-overlay").classList.add("show");
   document.getElementById("set-err").textContent="";
@@ -1453,7 +1453,7 @@ function pickPreset(a,b){
   buildPresets(a); previewAppearance();
 }
 
-// AperÃ§u en direct : applique sans enregistrer
+// Aperçu en direct : applique sans enregistrer
 function previewAppearance(){
   applyAppearance(readAppearanceForm());
   applyTheme(document.getElementById("set-theme").value);
@@ -1472,7 +1472,7 @@ function readAppearanceForm(){
 }
 function saveSettings(){
   const appearance=readAppearanceForm();
-  // Tout est stockÃ© en localStorage (sur l'appareil)
+  // Tout est stocké en localStorage (sur l'appareil)
   LS.setAppearance(appearance);
   LS.setWebhook(document.getElementById("set-webhook").value);
   LS.setAlerts({complete:document.getElementById("al-complete").checked,
@@ -1481,15 +1481,15 @@ function saveSettings(){
   const newAgent=document.getElementById("set-agent").value.trim().replace(/\/$/,"");
   const agentChanged=newAgent!==(localStorage.getItem("pw-agent")||"");
   if(newAgent)localStorage.setItem("pw-agent",newAgent); else localStorage.removeItem("pw-agent");
-  // ThÃ¨me : prÃ©fÃ©rence locale
+  // Thème : préférence locale
   const theme=document.getElementById("set-theme").value;
   localStorage.setItem("pw-theme",theme); applyTheme(theme);
-  // Pousse la config d'alertes Ã  l'agent (pour Discord)
+  // Pousse la config d'alertes à l'agent (pour Discord)
   pushMonitor();
   const skinChanged=(localStorage.getItem("pw-skin")||"archive")!==appearance.skin;
   applyAppearance(appearance);
-  if(skinChanged||agentChanged){toast("RÃ©glages appliquÃ©s â€” rechargementâ€¦");setTimeout(()=>location.reload(),500);return;}
-  toast("RÃ©glages enregistrÃ©s");closeSettings();
+  if(skinChanged||agentChanged){toast("Réglages appliqués — rechargement…");setTimeout(()=>location.reload(),500);return;}
+  toast("Réglages enregistrés");closeSettings();
 }
 async function testWebhook(){
   const err=document.getElementById("set-err");err.textContent="";
@@ -1497,8 +1497,8 @@ async function testWebhook(){
     const r=await fetch(api("/api/monitor/test"),{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({webhook:document.getElementById("set-webhook").value})});
     const d=await r.json();
-    if(r.ok)toast("ðŸ”” Message test envoyÃ© sur Discord");
-    else err.textContent=d.error||"Ã‰chec de l'envoi";
+    if(r.ok)toast("Discord Message test envoyé sur Discord");
+    else err.textContent=d.error||"Échec de l'envoi";
   }catch(e){err.textContent="Agent injoignable";}
 }
 
@@ -1512,19 +1512,19 @@ const panelCharts={}, panelHistory={};  // widgetId -> Chart / history arrays
 // ---- Constantes par type ----
 const WT_DEF={
   progress:{colSpan:4,rowSpan:3,label:"Progression"},
-  temps:   {colSpan:4,rowSpan:2,label:"TempÃ©ratures"},
-  health:  {colSpan:4,rowSpan:3,label:"SantÃ© machine"},
+  temps:   {colSpan:4,rowSpan:2,label:"Températures"},
+  health:  {colSpan:4,rowSpan:3,label:"Santé machine"},
   chart:   {colSpan:6,rowSpan:3,label:"Graphe"},
   webcam:  {colSpan:6,rowSpan:4,label:"Webcam"},
-  controls:{colSpan:4,rowSpan:2,label:"ContrÃ´les"},
+  controls:{colSpan:4,rowSpan:2,label:"Contrôles"},
 };
 
 // ---- Calcul de style positionnel ----
 function gridWidth(){
   const grid=document.getElementById("panel-grid");
   if(!grid) return 1100;
-  // getBoundingClientRect est 0 si le panneau est cachÃ© ou l'iframe trop Ã©troite.
-  // On remonte la chaÃ®ne parente pour trouver une largeur fiable.
+  // getBoundingClientRect est 0 si le panneau est caché ou l'iframe trop étroite.
+  // On remonte la chaîne parente pour trouver une largeur fiable.
   let w=grid.getBoundingClientRect().width;
   if(w<=0) w=grid.offsetWidth;
   if(w<=0) w=grid.parentElement?.getBoundingClientRect().width||0;
@@ -1548,7 +1548,7 @@ function cellAt(mouseX,mouseY){
   return {col,row,cellW};
 }
 
-// ---- Rendu de la grille fantÃ´me ----
+// ---- Rendu de la grille fantôme ----
 function renderGhostGrid(show){
   const grid=document.getElementById("panel-grid");
   grid.querySelectorAll(".pg-shadow-cell").forEach(e=>e.remove());
@@ -1567,7 +1567,7 @@ function renderGhostGrid(show){
 // ---- Rendu complet de la grille ----
 function renderPanelGrid(){
   const grid=document.getElementById("panel-grid");
-  // Retire les anciens widgets (pas le ghost ni les cellules fantÃ´mes)
+  // Retire les anciens widgets (pas le ghost ni les cellules fantômes)
   grid.querySelectorAll(".pw").forEach(e=>e.remove());
   const maxRow=panelWidgets.reduce((m,w)=>Math.max(m,w.row+w.rowSpan),6);
   grid.style.minHeight=(maxRow*(CELL_H+PGAP)+40)+"px";
@@ -1575,7 +1575,7 @@ function renderPanelGrid(){
   renderGhostGrid(editMode);
 }
 
-// ---- CrÃ©ation d'un widget DOM ----
+// ---- Création d'un widget DOM ----
 function createPW(w){
   const el=document.createElement("div");
   el.className="pw"+(editMode?" edit-mode":"");
@@ -1585,9 +1585,9 @@ function createPW(w){
   const printer=allPrinters.find(p=>p.id===w.printer)||{name:"?",type:"?"};
   el.innerHTML=`
     <div class="pw-header">
-      ${editMode?`<span class="pw-drag-handle" title="DÃ©placer">â ¿</span>`:""}
-      <span class="pw-title">${WT_DEF[w.type]?.label||w.type} â€” ${esc(printer.name)}</span>
-      ${editMode?`<button class="pw-del" onclick="removeWidget('${w.id}')">âœ•</button>`:""}
+      ${editMode?`<span class="pw-drag-handle" title="Déplacer">⠿</span>`:""}
+      <span class="pw-title">${WT_DEF[w.type]?.label||w.type} — ${esc(printer.name)}</span>
+      ${editMode?`<button class="pw-del" onclick="removeWidget('${w.id}')">x</button>`:""}
     </div>
     <div class="pw-body${w.type==="webcam"?" no-pad":""}" id="pwb-${w.id}"></div>
     ${editMode?`<div class="pw-resize" title="Redimensionner">
@@ -1613,21 +1613,21 @@ function buildWidgetBody(w,body){
           <circle id="pwr-${w.id}" cx="36" cy="36" r="30" fill="none" stroke="url(#grad)" stroke-width="7" stroke-linecap="round" transform="rotate(-90,36,36)"
             stroke-dasharray="${2*Math.PI*30}" stroke-dashoffset="${2*Math.PI*30}"/></svg>
         <div class="pw-pinfo"><div class="pw-pct" id="pwpct-${w.id}">0%</div>
-          <div class="pw-fname" id="pwfn-${w.id}">â€”</div>
-          <div class="pw-eta-s" id="pweta-${w.id}">restant : â€”</div></div></div>`;
+          <div class="pw-fname" id="pwfn-${w.id}">—</div>
+          <div class="pw-eta-s" id="pweta-${w.id}">restant : —</div></div></div>`;
       break;
     case"temps":
       body.innerHTML=`<div class="pw-temps-grid">
-        <div class="pw-temp ext"><div class="lbl">Buse</div><div class="val" id="pwte-${w.id}">â€”</div><div class="tgt" id="pwtge-${w.id}"></div></div>
-        <div class="pw-temp bed"><div class="lbl">Plateau</div><div class="val" id="pwtb-${w.id}">â€”</div><div class="tgt" id="pwtgb-${w.id}"></div></div>
-        <div class="pw-temp cham" id="pwtcwrap-${w.id}"><div class="lbl">Chambre</div><div class="val" id="pwtc-${w.id}">â€”</div><div class="tgt" id="pwtgc-${w.id}"></div></div></div>`;
+        <div class="pw-temp ext"><div class="lbl">Buse</div><div class="val" id="pwte-${w.id}">—</div><div class="tgt" id="pwtge-${w.id}"></div></div>
+        <div class="pw-temp bed"><div class="lbl">Plateau</div><div class="val" id="pwtb-${w.id}">—</div><div class="tgt" id="pwtgb-${w.id}"></div></div>
+        <div class="pw-temp cham" id="pwtcwrap-${w.id}"><div class="lbl">Chambre</div><div class="val" id="pwtc-${w.id}">—</div><div class="tgt" id="pwtgc-${w.id}"></div></div></div>`;
       break;
     case"health":
       body.innerHTML=`<div class="pw-health-grid">
-        <div class="pw-hitem"><span>CPU</span><b id="pwcpu-${w.id}">â€”</b></div>
-        <div class="pw-hitem"><span>CPU Â°C</span><b id="pwcput-${w.id}">â€”</b></div>
-        <div class="pw-hitem"><span>RAM</span><b id="pwram-${w.id}">â€”</b></div>
-        <div class="pw-hitem"><span>Uptime</span><b id="pwup-${w.id}">â€”</b></div>
+        <div class="pw-hitem"><span>CPU</span><b id="pwcpu-${w.id}">—</b></div>
+        <div class="pw-hitem"><span>CPU °C</span><b id="pwcput-${w.id}">—</b></div>
+        <div class="pw-hitem"><span>RAM</span><b id="pwram-${w.id}">—</b></div>
+        <div class="pw-hitem"><span>Uptime</span><b id="pwup-${w.id}">—</b></div>
       </div><div class="pw-sensors-row" id="pwsens-${w.id}"></div>`;
       break;
     case"chart":
@@ -1651,20 +1651,20 @@ function buildWidgetBody(w,body){
       break;
     case"controls":
       body.innerHTML=`<div class="pw-ctrl-grid">
-        <button class="ctrl" onclick="control('${w.printer}','pause')">â¸ Pause</button>
-        <button class="ctrl" onclick="control('${w.printer}','resume')">â–¶ Reprendre</button>
-        <button class="ctrl danger" onclick="control('${w.printer}','cancel',null,true)">âœ• Annuler</button>
+        <button class="ctrl" onclick="control('${w.printer}','pause')">Pause</button>
+        <button class="ctrl" onclick="control('${w.printer}','resume')">Reprendre</button>
+        <button class="ctrl danger" onclick="control('${w.printer}','cancel',null,true)">Annuler</button>
         <select class="ctrl-select" style="flex:1" onchange="if(this.value){control('${w.printer}','preheat',this.value);this.value=''}">
-          <option value="">ðŸ”¥ PrÃ©chauffeâ€¦</option><option>PLA</option><option>PETG</option><option>ABS</option>
+          <option value="">Préchauffe...</option><option>PLA</option><option>PETG</option><option>ABS</option>
         </select>
-        <button class="ctrl" onclick="control('${w.printer}','cooldown')">â„ Refroidir</button>
-        <button class="ctrl estop danger" onclick="control('${w.printer}','estop',null,true)">ðŸ›‘ ArrÃªt</button>
+        <button class="ctrl" onclick="control('${w.printer}','cooldown')">Refroidir</button>
+        <button class="ctrl estop danger" onclick="control('${w.printer}','estop',null,true)">Arrêt</button>
       </div>`;
       break;
   }
 }
 
-// ---- Mise Ã  jour des widgets depuis le statut ----
+// ---- Mise à jour des widgets depuis le statut ----
 function updatePW(wid,s){
   const w=panelWidgets.find(x=>x.id===wid); if(!w)return;
   const t=s.temps||{}, sys=s.system||{}, sens=s.sensors||{};
@@ -1673,25 +1673,25 @@ function updatePW(wid,s){
       const p=s.progress||0, C=2*Math.PI*30;
       const r=document.getElementById("pwr-"+wid); if(r)r.style.strokeDashoffset=C*(1-p);
       const el=document.getElementById("pwpct-"+wid); if(el)el.textContent=Math.round(p*100)+"%";
-      const fn=document.getElementById("pwfn-"+wid); if(fn)fn.textContent=s.filename||"En attenteâ€¦";
+      const fn=document.getElementById("pwfn-"+wid); if(fn)fn.textContent=s.filename||"En attente…";
       const eta=document.getElementById("pweta-"+wid); if(eta)eta.textContent="restant : "+fmtTime(s.time_left);
       break;}
     case"temps":{
       const set=(sfx,obj,tgt)=>{
-        const v=document.getElementById("pwt"+sfx+"-"+wid); if(v)v.textContent=obj?(obj.actual+"Â°"):"â€”";
-        const g=document.getElementById("pwtg"+sfx+"-"+wid); if(g)g.textContent=(obj&&obj.target>0)?"â†’ "+obj.target+"Â°":"";
+        const v=document.getElementById("pwt"+sfx+"-"+wid); if(v)v.textContent=obj?(obj.actual+"°"):"—";
+        const g=document.getElementById("pwtg"+sfx+"-"+wid); if(g)g.textContent=(obj&&obj.target>0)?"→ "+obj.target+"°":"";
       };
       set("e",t.extruder,"e"); set("b",t.bed,"b"); set("c",t.chamber,"c");
       const cw=document.getElementById("pwtcwrap-"+wid); if(cw)cw.style.display=t.chamber?"":"none";
       break;}
     case"health":{
       const g=id=>document.getElementById(id);
-      if(g("pwcpu-"+wid))g("pwcpu-"+wid).textContent=sys.cpu!=null?sys.cpu+" %":"â€”";
-      if(g("pwcput-"+wid))g("pwcput-"+wid).textContent=sys.cpu_temp?sys.cpu_temp+"Â°":"â€”";
-      if(g("pwram-"+wid))g("pwram-"+wid).textContent=sys.mem_pct!=null?sys.mem_pct+" %":"â€”";
-      if(g("pwup-"+wid))g("pwup-"+wid).textContent=sys.uptime?fmtDur(sys.uptime):"â€”";
+      if(g("pwcpu-"+wid))g("pwcpu-"+wid).textContent=sys.cpu!=null?sys.cpu+" %":"—";
+      if(g("pwcput-"+wid))g("pwcput-"+wid).textContent=sys.cpu_temp?sys.cpu_temp+"°":"—";
+      if(g("pwram-"+wid))g("pwram-"+wid).textContent=sys.mem_pct!=null?sys.mem_pct+" %":"—";
+      if(g("pwup-"+wid))g("pwup-"+wid).textContent=sys.uptime?fmtDur(sys.uptime):"—";
       const sr=document.getElementById("pwsens-"+wid);
-      if(sr)sr.innerHTML=Object.entries(sens).map(([k,v])=>`<span class="schip">${esc(k)} <b>${v}Â°</b></span>`).join("");
+      if(sr)sr.innerHTML=Object.entries(sens).map(([k,v])=>`<span class="schip">${esc(k)} <b>${v}°</b></span>`).join("");
       break;}
     case"chart":{
       const ch=panelCharts[wid]; if(!ch)break;
@@ -1710,7 +1710,7 @@ function updatePanelWidgets(pid,s){
   panelWidgets.filter(w=>w.printer===pid).forEach(w=>updatePW(w.id,s));
 }
 
-// ---- Drag (dÃ©placer) ----
+// ---- Drag (déplacer) ----
 function setupPWDrag(el,w){
   const handle=el.querySelector(".pw-drag-handle"); if(!handle)return;
   handle.addEventListener("mousedown",e=>{
@@ -1784,13 +1784,13 @@ async function loadLayouts(){
     panelWidgets=JSON.parse(JSON.stringify(panelLayouts[activeLayout]));
     document.getElementById("layout-name").value=activeLayout;
   }
-  // Ne pas renderPanelGrid() ici : le panneau est encore cachÃ© au dÃ©marrage.
+  // Ne pas renderPanelGrid() ici : le panneau est encore caché au démarrage.
   // switchTab('panels') s'en chargera avec les bonnes dimensions.
 }
 
 function rebuildLayoutSelect(){
   const sel=document.getElementById("layout-select");
-  sel.innerHTML='<option value="">â€” nouveau â€”</option>';
+  sel.innerHTML='<option value="">— nouveau —</option>';
   Object.keys(panelLayouts).forEach(n=>{
     const o=document.createElement("option");o.value=n;o.textContent=n;
     if(n===activeLayout)o.selected=true;
@@ -1816,23 +1816,23 @@ function saveCurrentLayout(){
   activeLayout=name;
   LS.setLayouts({active:name,layouts:panelLayouts});
   rebuildLayoutSelect();
-  toast("Layout Â« "+name+" Â» enregistrÃ©");
+  toast("Layout « "+name+" » enregistré");
 }
 
 function deleteCurrentLayout(){
   const name=activeLayout||document.getElementById("layout-name").value.trim();
-  if(!name||!panelLayouts[name]){toast("Aucun layout Ã  supprimer",true);return;}
-  if(!confirm("Supprimer le layout Â« "+name+" Â» ?"))return;
+  if(!name||!panelLayouts[name]){toast("Aucun layout à supprimer",true);return;}
+  if(!confirm("Supprimer le layout « "+name+" » ?"))return;
   delete panelLayouts[name];
   activeLayout=""; panelWidgets=[];
   LS.setLayouts({active:"",layouts:panelLayouts});
   rebuildLayoutSelect();
   document.getElementById("layout-name").value="";
   document.getElementById("layout-select").value="";
-  renderPanelGrid(); toast("Layout supprimÃ©");
+  renderPanelGrid(); toast("Layout supprimé");
 }
 
-// ---- Mode Ã©dition ----
+// ---- Mode édition ----
 function toggleEditMode(){
   editMode=!editMode;
   document.getElementById("edit-btn").classList.toggle("active",editMode);
@@ -1849,9 +1849,9 @@ function closeWidgetPicker(){document.getElementById("wp-overlay").classList.rem
 
 function addWidget(type){
   const pid=document.getElementById("wp-printer").value;
-  if(!pid){toast("SÃ©lectionne une imprimante",true);return;}
+  if(!pid){toast("Sélectionne une imprimante",true);return;}
   const def=WT_DEF[type]||{colSpan:4,rowSpan:3};
-  // Trouve la premiÃ¨re position libre
+  // Trouve la première position libre
   let row=0, col=0;
   while(panelWidgets.some(w=>overlaps({col,row,...def},w))) {
     col+=def.colSpan; if(col+def.colSpan>COLS){col=0;row++;}
@@ -1876,7 +1876,7 @@ function removeWidget(wid){
   renderPanelGrid();
 }
 
-// ---- Recalcule les positions sur resize de fenÃªtre ----
+// ---- Recalcule les positions sur resize de fenêtre ----
 window.addEventListener("resize",()=>{
   if(document.getElementById("view-panels").style.display==="none")return;
   document.querySelectorAll(".pw").forEach(el=>{
@@ -1888,15 +1888,15 @@ window.addEventListener("resize",()=>{
 
 document.getElementById("wp-overlay").addEventListener("click",e=>{if(e.target.id==="wp-overlay")closeWidgetPicker();});
 
-// ---- ThÃ¨me clair / sombre ----
+// ---- Thème clair / sombre ----
 function applyTheme(t){
   document.body.dataset.theme=t;
-  document.getElementById("theme-btn").textContent=t==="light"?"â˜€ï¸":"ðŸŒ™";
+  document.getElementById("theme-btn").textContent=t==="light"?"L":"D";
   document.querySelector('meta[name="theme-color"]').setAttribute("content",t==="light"?"#eef1f7":"#070810");
 }
 function toggleTheme(){const t=document.body.dataset.theme==="light"?"dark":"light";localStorage.setItem("pw-theme",t);applyTheme(t);}
 
-// ---- Mode TV (plein Ã©cran) ----
+// ---- Mode TV (plein écran) ----
 function toggleTV(){
   document.body.classList.toggle("tv");
   if(document.body.classList.contains("tv")){if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen().catch(()=>{});}
@@ -1907,10 +1907,10 @@ document.addEventListener("fullscreenchange",()=>{if(!document.fullscreenElement
 window.addEventListener("resize",moveIndicator);
 document.getElementById("jd-overlay").addEventListener("click",e=>{if(e.target.id==="jd-overlay")closeJob();});
 document.getElementById("set-overlay").addEventListener("click",e=>{if(e.target.id==="set-overlay")closeSettings();});
-// AperÃ§u en direct des rÃ©glages d'apparence
+// Aperçu en direct des réglages d'apparence
 ["set-anim","set-bg","set-font","set-radius","set-density","set-theme","set-skin","set-accent","set-accent2","set-name","set-logo"]
   .forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener("input",previewAppearance);});
-// Retour au premier plan : on rafraÃ®chit tout de suite
+// Retour au premier plan : on rafraîchit tout de suite
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)poll();});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeJob();closeSettings();}});
 
@@ -1918,7 +1918,7 @@ document.getElementById("f-host").addEventListener("keydown",e=>{if(e.key==="Ent
 document.getElementById("overlay").addEventListener("click",e=>{if(e.target.id==="overlay")closeModal();});
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});
 
-// Skin par dÃ©faut = Archive (avant toute crÃ©ation de graphe pour la bonne palette)
+// Skin par défaut = Archive (avant toute création de graphe pour la bonne palette)
 document.body.classList.toggle("skin-archive",(localStorage.getItem("pw-skin")||"archive")==="archive");
 applyTheme(localStorage.getItem("pw-theme")||"dark");
 if(localStorage.getItem("pw-compact")==="1"){document.body.classList.add("compact");
@@ -1926,12 +1926,10 @@ if(localStorage.getItem("pw-compact")==="1"){document.body.classList.add("compac
 applyAppearance(LS.appearance()||{});
 if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{});}
 loadPrinters().then(loadLayouts);
-pushMonitor();   // transmet la config d'alertes Ã  l'agent au dÃ©marrage
+pushMonitor();   // transmet la config d'alertes à l'agent au démarrage
 setInterval(poll,POLL_MS); setTimeout(poll,400);
-setInterval(pushMonitor,60000);  // rÃ©-aligne l'agent pÃ©riodiquement
+setInterval(pushMonitor,60000);  // ré-aligne l'agent périodiquement
 setTimeout(moveIndicator,60);
 </script>
 </body>
 </html>
-
-
