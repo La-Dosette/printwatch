@@ -9,7 +9,7 @@ automatiquement.** Backend Python léger + interface web temps réel.
 ## ✨ Fonctionnalités
 
 ### 📊 Tableau de bord temps réel
-- **Détection automatique** du protocole à partir de l'IP (Moonraker / OctoPrint)
+- **Détection automatique** du protocole à partir de l'IP (Moonraker / OctoPrint / FlashForge 5M)
 - État + **progression** (anneau animé), nom du fichier, temps restant
 - **Températures** buse / plateau / chambre avec graphique temps réel
 - **Webcam** (flux MJPEG proxifié — pas de souci CORS / contenu mixte)
@@ -38,15 +38,25 @@ automatiquement.** Backend Python léger + interface web temps réel.
 - **Mode performance** (animations réduites) pour les machines modestes
 - Réorganisation des cartes, vue compacte, widgets masquables par carte
 
-## 🔌 Protocoles supportés
+## 🔌 Connecteurs / compatibilité
 
-| Firmware | Marques typiques | Config requise |
-|----------|------------------|----------------|
-| **Moonraker** (Klipper) | Voron, Creality K1/K1 Max, Ender-3 V3, Elegoo Neptune (Klipper), Sovol… | Aucune — juste l'IP (port 7125) |
-| **OctoPrint** | Toute imprimante Marlin pilotée par un OctoPrint | Clé API OctoPrint |
+PrintWatch vise une approche **universelle par connecteurs** : chaque marque expose
+un protocole différent, donc l'agent détecte puis normalise les données vers le même
+format UI (état, progression, températures, webcam, santé, contrôles si possible).
 
-> Les imprimantes **résine Elegoo (SDCP)** et **Bambu Lab (MQTT)** ne sont pas encore
-> gérées. L'architecture est prête pour les ajouter (voir `fetch_status` dans `app.py`).
+| Connecteur | Marques / machines typiques | Statut | Config requise |
+|------------|-----------------------------|--------|----------------|
+| **Moonraker / Klipper** | Voron, Creality K1/K1 Max rootées ou compatibles, Ender-3 V3, Elegoo Neptune Klipper, Sovol… | ✅ Monitoring + contrôles + stats | IP uniquement (`7125`) |
+| **OctoPrint** | Marlin via Raspberry/OctoPrint | ✅ Monitoring | IP + clé API OctoPrint |
+| **FlashForge Adventurer 5M / 5M Pro** | FlashForge AD5M / AD5M Pro en LAN | ✅ Monitoring de base | IP + `serialNumber` + `checkCode` (`8898`) |
+| **Creality LAN natif** | Creality Hi / K2 / certains K1 non-Moonraker | 🟡 À brancher | WebSocket local `9999` selon modèle |
+| **Elegoo SDCP** | Elegoo résine, Centauri Carbon | 🟡 À brancher | SDCP v3 / WebSocket + découverte |
+| **Anycubic** | Kobra / Photon récents | 🟡 Variable | Rinkhals/Moonraker recommandé ; API locale officielle souvent fermée |
+| **Bambu Lab** | P/X/A series | 🟡 À brancher | MQTT LAN + access code |
+
+Le principe : si une marque n'a pas d'API locale ouverte, PrintWatch affichera un
+message clair au lieu de faire semblant. Les connecteurs sont ajoutés un par un dans
+`app.py` (`detect_protocol`, `fetch_<connecteur>`, puis branchement dans `fetch_status`).
 
 ## 🏗️ Architecture : UI hébergée + agent local
 
@@ -73,6 +83,38 @@ Le plus simple :
 5. Il garde l'agent local actif sur `http://localhost:8088`.
 
 Garde la fenetre ouverte tant que tu utilises PrintWatch.
+
+### Windows : executable sans console
+
+Pour generer un vrai `.exe` qui ouvre l'interface et lance l'agent sans fenetre CMD :
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\build-exe.ps1
+```
+
+Le fichier final sera :
+
+```text
+dist\PrintWatchAgent.exe
+```
+
+Double-clique dessus : l'agent demarre en arriere-plan et ouvre
+https://la-dosette.github.io/printwatch/.
+
+Une icone **PrintWatch Agent** apparait dans la zone de notification Windows
+(la petite fleche pres de l'horloge). Son menu permet de :
+
+- ouvrir l'interface hebergee ;
+- ouvrir l'agent local (`http://localhost:8088`) ;
+- quitter l'agent a tout moment.
+
+Si l'agent est deja actif, un deuxieme lancement ouvre simplement l'interface et quitte.
+
+Les logs sont ecrits ici en cas de souci :
+
+```text
+%LOCALAPPDATA%\PrintWatch\agent.log
+```
 
 ### Manuel
 

@@ -662,8 +662,10 @@
     <label>URL webcam (optionnel)</label>
     <input id="f-webcam" placeholder="http://192.168.1.15/webcam/?action=stream">
     <div class="hint">Vide = chemin standard Klipper essayé automatiquement.</div>
-    <label>Clé API OctoPrint (optionnel)</label>
-    <input id="f-apikey" placeholder="Uniquement pour OctoPrint">
+    <label>Serial / identifiant (optionnel)</label>
+    <input id="f-serial" placeholder="FlashForge : serialNumber">
+    <label>Code / clé API (optionnel)</label>
+    <input id="f-apikey" placeholder="OctoPrint : clé API · FlashForge : checkCode">
     <div class="err" id="f-err"></div>
     <div class="row-btns">
       <button class="btn ghost" onclick="closeModal()">Annuler</button>
@@ -815,19 +817,26 @@ const LS={
 };
 // Helpers requête imprimante
 const pq=p=>`host=${encodeURIComponent(p.host)}&type=${encodeURIComponent(p.type||"")}`+
+  (p.serial?`&serial=${encodeURIComponent(p.serial)}`:"")+
   (p.apikey?`&apikey=${encodeURIComponent(p.apikey)}`:"");
-const webcamUrl=p=>p.webcam&&p.webcam.trim()?p.webcam.trim():`http://${p.host}/webcam/?action=stream`;
-const printersById={};  // id -> objet imprimante complet (host,type,apikey,webcam)
+const webcamUrl=p=>{
+  if(p.webcam&&p.webcam.trim())return p.webcam.trim();
+  if(p.type==="flashforge_5m")return `http://${p.host}:8080/?action=stream`;
+  return `http://${p.host}/webcam/?action=stream`;
+};
+const printersById={};  // id -> objet imprimante complet (host,type,serial,apikey,webcam)
 const lastStatus={};    // id -> dernier statut (panels + retour d'onglet)
 
 // Pousse la config de surveillance (alertes Discord) à l'agent local
 function pushMonitor(){
   const payload={webhook:LS.webhook(),alerts:LS.alerts(),
-    printers:LS.printers().map(p=>({id:p.id,name:p.name,host:p.host,type:p.type,apikey:p.apikey||""}))};
+    printers:LS.printers().map(p=>({id:p.id,name:p.name,host:p.host,type:p.type,
+      serial:p.serial||"",apikey:p.apikey||""}))};
   fetch(api("/api/monitor"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}).catch(()=>{});
 }
-const STATE_LABELS={printing:"Impression",paused:"En pause",complete:"Terminé",standby:"Prêt",
-  idle:"Prêt",cancelled:"Annulé",error:"Erreur",offline:"Hors ligne",operational:"Prêt",ready:"Prêt",unknown:"—"};
+const STATE_LABELS={printing:"Impression",paused:"En pause",complete:"Terminé",completed:"Terminé",
+  standby:"Prêt",idle:"Prêt",ready:"Prêt",operational:"Prêt",busy:"Occupé",heating:"Chauffe",
+  pausing:"Pause…",cancel:"Annulé",cancelled:"Annulé",error:"Erreur",offline:"Hors ligne",unknown:"—"};
 
 function fmtTime(s){if(s==null)return"—";s=Math.round(s);const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);
   return h>0?h+"h"+String(m).padStart(2,"0"):m+" min";}
@@ -1018,13 +1027,13 @@ function setTemp(id,k,o){
 
 function openModal(){document.getElementById("overlay").classList.add("show");setTimeout(()=>document.getElementById("f-host").focus(),200);}
 function closeModal(){document.getElementById("overlay").classList.remove("show");document.getElementById("f-err").textContent="";
-  ["f-host","f-name","f-webcam","f-apikey"].forEach(i=>document.getElementById(i).value="");}
+  ["f-host","f-name","f-webcam","f-serial","f-apikey"].forEach(i=>document.getElementById(i).value="");}
 
 async function addPrinter(){
   const btn=document.getElementById("f-submit"),err=document.getElementById("f-err");
   err.textContent="";
   const host=val("f-host").trim(), name=val("f-name").trim(),
-        webcam=val("f-webcam").trim(), apikey=val("f-apikey").trim();
+        webcam=val("f-webcam").trim(), serial=val("f-serial").trim(), apikey=val("f-apikey").trim();
   if(!host){err.textContent="Entre une adresse IP.";return;}
   btn.disabled=true;btn.innerHTML='<span class="spin"></span>Détection…';
   try{
@@ -1033,7 +1042,7 @@ async function addPrinter(){
     const d=await r.json();
     if(!r.ok){err.textContent=d.error||"Aucune imprimante détectée. L'agent local tourne-t-il ?";return;}
     const printer={id:"p"+Date.now().toString(36)+Math.random().toString(36).slice(2,5),
-      name:name||d.host,host:d.host,type:d.type,apikey,webcam};
+      name:name||d.host,host:d.host,type:d.type,serial,apikey,webcam};
     const list=LS.printers(); list.push(printer); LS.setPrinters(list);
     pushMonitor();
     closeModal();await loadPrinters();
@@ -1594,7 +1603,7 @@ function buildWidgetBody(w,body){
       });
       break;
     case"webcam":
-      body.innerHTML=`<div class="pw-webcam"><img src="/api/webcam/${w.printer}" onerror="this.style.display='none';this.nextSibling.style.display=''"><span style="display:none">Pas de flux webcam</span></div>`;
+      body.innerHTML=`<div class="pw-webcam"><img src="${api("/api/webcam?url="+encodeURIComponent(webcamUrl(printersById[w.printer]||{})))}" onerror="this.style.display='none';this.nextSibling.style.display=''"><span style="display:none">Pas de flux webcam</span></div>`;
       break;
     case"controls":
       body.innerHTML=`<div class="pw-ctrl-grid">

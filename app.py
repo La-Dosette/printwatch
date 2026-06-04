@@ -1,8 +1,9 @@
 """
 PrintWatch - Agent local de monitoring d'imprimantes 3D.
 
-Agent SANS ETAT : il detecte le protocole (Moonraker / OctoPrint) et relaie
-vers les imprimantes. Toute la configuration vit cote navigateur (localStorage) ;
+Agent SANS ETAT : il detecte le protocole via des connecteurs (Moonraker,
+OctoPrint, FlashForge 5M...) et relaie vers les imprimantes. Toute la
+configuration vit cote navigateur (localStorage) ;
 l'hote/le type sont passes en parametres d'URL. L'agent sert aussi l'UI statique
 (dossier docs/), la meme qui peut etre hebergee sur GitHub Pages.
 
@@ -89,12 +90,18 @@ def _handle_transition(printer, prev, cur, status, webhook, alerts):
 
 
 def _printer_from_cfg(item):
-    """Construit une imprimante depuis un item pousse par le navigateur {name,host,type,apikey}."""
+    """Construit une imprimante depuis un item pousse par le navigateur."""
     host = (item.get("host") or "").strip()
     ptype = item.get("type") or ""
-    base = f"http://{host}:7125" if ptype == "moonraker" else f"http://{host}"
+    if ptype == "moonraker":
+        base = f"http://{host}:7125"
+    elif ptype == "flashforge_5m":
+        base = f"http://{host}:8898"
+    else:
+        base = f"http://{host}"
     return {"id": item.get("id") or host, "name": item.get("name") or host, "host": host,
             "type": ptype, "base_url": base, "apikey": item.get("apikey") or "",
+            "serial": item.get("serial") or "",
             "webcam": item.get("webcam") or ""}
 
 
@@ -154,6 +161,17 @@ def detect_protocol(host, apikey=None):
         # 200 = ok ; 403 = OctoPrint present mais cle manquante/invalide.
         if r.status_code in (200, 403):
             return "octoprint", base
+    except requests.RequestException:
+        pass
+
+    # 3) FlashForge Adventurer 5M / 5M Pro - API HTTP locale sur 8898.
+    # Le statut complet exige serialNumber + checkCode, mais la presence du port
+    # suffit pour proposer le connecteur et demander ces champs a l'utilisateur.
+    try:
+        base = f"http://{host_only}:8898"
+        r = requests.post(f"{base}/detail", json={}, timeout=HTTP_TIMEOUT)
+        if r.status_code in (200, 400, 401, 403, 405):
+            return "flashforge_5m", base
     except requests.RequestException:
         pass
 
@@ -324,6 +342,88 @@ def fetch_octoprint(printer, base):
     }
 
 
+def _ff_get(data, *names, default=None):
+    """Recherche tolerante dans les reponses FlashForge."""
+    if not isinstance(data, dict):
+        return default
+    wanted = {n.lower() for n in names}
+    stack = [data]
+    while stack:
+        cur = stack.pop()
+        if not isinstance(cur, dict):
+            continue
+        for k, v in cur.items():
+            if str(k).lower() in wanted:
+                return v
+            if isinstance(v, dict):
+                stack.append(v)
+    return default
+
+
+def _safe_float(value, default=0):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def fetch_flashforge_5m(printer, base):
+    """FlashForge Adventurer 5M/5M Pro : statut via HTTP POST /detail (port 8898)."""
+    serial = (printer.get("serial") or "").strip()
+    check_code = (printer.get("apikey") or "").strip()
+    if not serial or not check_code:
+        return empty_status({
+            "error": "FlashForge : serialNumber et checkCode requis."
+        })
+
+    try:
+        r = requests.post(
+            f"{base}/detail",
+            json={"serialNumber": serial, "checkCode": check_code},
+            timeout=HTTP_TIMEOUT,
+        )
+        r.raise_for_status()
+        raw = r.json()
+    except (requests.RequestException, ValueError):
+        return empty_status({"error": "FlashForge : connexion ou authentification impossible"})
+
+    state = str(_ff_get(raw, "status", "machineStatus", "printerStatus", default="unknown")).lower()
+    progress = _safe_float(_ff_get(raw, "printProgress", "progress", "printPercent", default=0))
+    if progress > 1:
+        progress = progress / 100
+
+    time_left = _ff_get(raw, "remainingTime", "leftTime", "printRemainingTime", default=None)
+    try:
+        time_left = int(time_left) if time_left is not None else None
+    except (TypeError, ValueError):
+        time_left = None
+
+    temps = {
+        "extruder": {
+            "actual": round(_safe_float(_ff_get(raw, "leftTemp", "rightTemp", "nozzleTemp", "extruderTemp")), 1),
+            "target": round(_safe_float(_ff_get(raw, "leftTargetTemp", "rightTargetTemp",
+                                                "nozzleTargetTemp", "extruderTargetTemp")), 1),
+        },
+        "bed": {
+            "actual": round(_safe_float(_ff_get(raw, "platTemp", "bedTemp", "platformTemp")), 1),
+            "target": round(_safe_float(_ff_get(raw, "platTargetTemp", "bedTargetTemp",
+                                                "platformTargetTemp")), 1),
+        },
+    }
+
+    return {
+        "online": True,
+        "state": state,
+        "filename": _ff_get(raw, "printFileName", "fileName", "filename", default=None),
+        "progress": round(max(0, min(progress, 1)), 4),
+        "time_left": time_left,
+        "temps": temps,
+        "sensors": {},
+        "system": {},
+        "error": None,
+    }
+
+
 def fetch_status(printer):
     ptype = printer.get("type")
     base = printer.get("base_url")
@@ -331,6 +431,8 @@ def fetch_status(printer):
         return fetch_moonraker(printer, base)
     if ptype == "octoprint":
         return fetch_octoprint(printer, base)
+    if ptype == "flashforge_5m":
+        return fetch_flashforge_5m(printer, base)
     return empty_status({"error": "Protocole inconnu"})
 
 
@@ -496,9 +598,15 @@ def printer_from_params():
     host = (request.args.get("host") or "").strip()
     ptype = (request.args.get("type") or "").strip()
     apikey = (request.args.get("apikey") or "").strip()
-    base = f"http://{host}:7125" if ptype == "moonraker" else f"http://{host}"
+    serial = (request.args.get("serial") or "").strip()
+    if ptype == "moonraker":
+        base = f"http://{host}:7125"
+    elif ptype == "flashforge_5m":
+        base = f"http://{host}:8898"
+    else:
+        base = f"http://{host}"
     return {"id": host, "name": request.args.get("name") or host, "host": host,
-            "type": ptype, "base_url": base, "apikey": apikey,
+            "type": ptype, "base_url": base, "apikey": apikey, "serial": serial,
             "webcam": request.args.get("webcam", "")}
 
 
