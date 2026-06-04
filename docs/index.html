@@ -822,6 +822,7 @@ const pq=p=>`host=${encodeURIComponent(p.host)}&type=${encodeURIComponent(p.type
 const webcamUrl=p=>{
   if(p.webcam&&p.webcam.trim())return p.webcam.trim();
   if(p.type==="flashforge_5m")return `http://${p.host}:8080/?action=stream`;
+  if(p.type==="elegoo_sdcp_fdm")return `http://${p.host}:3031/video`;
   return `http://${p.host}/webcam/?action=stream`;
 };
 const printersById={};  // id -> objet imprimante complet (host,type,serial,apikey,webcam)
@@ -836,7 +837,8 @@ function pushMonitor(){
 }
 const STATE_LABELS={printing:"Impression",paused:"En pause",complete:"Terminé",completed:"Terminé",
   standby:"Prêt",idle:"Prêt",ready:"Prêt",operational:"Prêt",busy:"Occupé",heating:"Chauffe",
-  pausing:"Pause…",cancel:"Annulé",cancelled:"Annulé",error:"Erreur",offline:"Hors ligne",unknown:"—"};
+  pausing:"Pause…",cancel:"Annulé",cancelled:"Annulé",stopped:"Arrêté",
+  error:"Erreur",offline:"Hors ligne",unknown:"—"};
 
 function fmtTime(s){if(s==null)return"—";s=Math.round(s);const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);
   return h>0?h+"h"+String(m).padStart(2,"0"):m+" min";}

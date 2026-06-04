@@ -15,10 +15,14 @@ Puis ouvre http://localhost:8088 dans ton navigateur.
 
 import os
 import re
+import socket
 import threading
 import time
+import uuid
+import json
 
 import requests
+import websocket
 from flask import Flask, Response, jsonify, request, send_from_directory, stream_with_context
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -97,6 +101,8 @@ def _printer_from_cfg(item):
         base = f"http://{host}:7125"
     elif ptype == "flashforge_5m":
         base = f"http://{host}:8898"
+    elif ptype == "elegoo_sdcp_fdm":
+        base = f"ws://{host}:3030/websocket"
     else:
         base = f"http://{host}"
     return {"id": item.get("id") or host, "name": item.get("name") or host, "host": host,
@@ -173,6 +179,13 @@ def detect_protocol(host, apikey=None):
         if r.status_code in (200, 400, 401, 403, 405):
             return "flashforge_5m", base
     except requests.RequestException:
+        pass
+
+    # 4) Elegoo Centauri Carbon / SDCP FDM - WebSocket local sur 3030.
+    try:
+        with socket.create_connection((host_only, 3030), timeout=HTTP_TIMEOUT):
+            return "elegoo_sdcp_fdm", f"ws://{host_only}:3030/websocket"
+    except OSError:
         pass
 
     return None, None
@@ -424,6 +437,150 @@ def fetch_flashforge_5m(printer, base):
     }
 
 
+SDCP_MACHINE_STATES = {
+    0: "idle",
+    1: "printing",
+    2: "paused",
+    3: "error",
+}
+
+SDCP_PRINT_STATES = {
+    0: "idle",
+    1: "printing",   # homing / preparing
+    2: "printing",
+    3: "printing",
+    4: "printing",
+    5: "pausing",
+    6: "paused",
+    7: "cancelled",
+    8: "cancelled",
+    9: "complete",
+    10: "printing",
+}
+
+
+def _deep_find_dict(data, *names):
+    wanted = {n.lower() for n in names}
+    stack = [data]
+    while stack:
+        cur = stack.pop()
+        if not isinstance(cur, dict):
+            continue
+        for k, v in cur.items():
+            if str(k).lower() in wanted and isinstance(v, dict):
+                return v
+            if isinstance(v, dict):
+                stack.append(v)
+            elif isinstance(v, list):
+                stack.extend(x for x in v if isinstance(x, dict))
+    return {}
+
+
+def _sdcp_request(cmd, mainboard_id=""):
+    request_id = uuid.uuid4().hex
+    return {
+        "Id": uuid.uuid4().hex,
+        "Topic": f"sdcp/request/{mainboard_id}",
+        "Data": {
+            "Cmd": cmd,
+            "Data": {},
+            "RequestID": request_id,
+            "MainboardID": mainboard_id,
+            "TimeStamp": int(time.time()),
+            "From": 0,
+        },
+    }
+
+
+def _sdcp_status_from_message(message):
+    if not isinstance(message, dict):
+        return {}
+    status = _deep_find_dict(message, "Status", "last_status")
+    if status:
+        return status
+    # Certains clients renvoient directement le bloc status.
+    if "TempOfNozzle" in message or "PrintInfo" in message:
+        return message
+    return {}
+
+
+def fetch_elegoo_sdcp_fdm(printer, base):
+    """Elegoo Centauri Carbon / SDCP v3 FDM : statut via WebSocket local."""
+    mainboard_id = (printer.get("serial") or "").strip()
+    try:
+        ws = websocket.create_connection(base, timeout=HTTP_TIMEOUT)
+        ws.settimeout(HTTP_TIMEOUT)
+        # Le statut est souvent pousse automatiquement ; on demande quand meme un refresh.
+        ws.send("ping")
+        try:
+            ws.recv()
+        except Exception:
+            pass
+        ws.send(json.dumps(_sdcp_request(0, mainboard_id)))
+
+        status = {}
+        for _ in range(6):
+            raw = ws.recv()
+            try:
+                msg = json.loads(raw)
+            except (TypeError, ValueError):
+                continue
+            status = _sdcp_status_from_message(msg)
+            if status:
+                break
+        ws.close()
+    except Exception:
+        return empty_status({"error": "Elegoo SDCP : connexion WebSocket impossible"})
+
+    if not status:
+        return empty_status({"error": "Elegoo SDCP : aucun statut reçu"})
+
+    pinfo = status.get("PrintInfo") or {}
+    current = status.get("CurrentStatus")
+    if isinstance(current, list):
+        current = current[0] if current else 0
+    print_state = pinfo.get("Status")
+    state = SDCP_PRINT_STATES.get(print_state, SDCP_MACHINE_STATES.get(current, "unknown"))
+
+    current_ticks = _safe_float(pinfo.get("CurrentTicks"), 0)
+    total_ticks = _safe_float(pinfo.get("TotalTicks"), 0)
+    progress = current_ticks / total_ticks if total_ticks > 0 else 0
+    current_layer = _safe_float(pinfo.get("CurrentLayer"), 0)
+    total_layer = _safe_float(pinfo.get("TotalLayer"), 0)
+    if not progress and total_layer > 0:
+        progress = current_layer / total_layer
+
+    time_left = int(max(0, total_ticks - current_ticks)) if total_ticks > 0 else None
+
+    temps = {
+        "extruder": {
+            "actual": round(_safe_float(status.get("TempOfNozzle")), 1),
+            "target": round(_safe_float(status.get("TempTargetNozzle")), 1),
+        },
+        "bed": {
+            "actual": round(_safe_float(status.get("TempOfHotbed")), 1),
+            "target": round(_safe_float(status.get("TempTargetHotbed")), 1),
+        },
+    }
+    if status.get("TempOfBox") is not None:
+        temps["chamber"] = {
+            "actual": round(_safe_float(status.get("TempOfBox")), 1),
+            "target": round(_safe_float(status.get("TempTargetBox")), 1),
+        }
+
+    return {
+        "online": True,
+        "state": state,
+        "filename": pinfo.get("Filename") or None,
+        "progress": round(max(0, min(progress, 1)), 4),
+        "time_left": time_left,
+        "temps": temps,
+        "sensors": {},
+        "system": {},
+        "error": None,
+    }
+
+
 def fetch_status(printer):
     ptype = printer.get("type")
     base = printer.get("base_url")
@@ -433,6 +590,8 @@ def fetch_status(printer):
         return fetch_octoprint(printer, base)
     if ptype == "flashforge_5m":
         return fetch_flashforge_5m(printer, base)
+    if ptype == "elegoo_sdcp_fdm":
+        return fetch_elegoo_sdcp_fdm(printer, base)
     return empty_status({"error": "Protocole inconnu"})
 
 
@@ -603,6 +762,8 @@ def printer_from_params():
         base = f"http://{host}:7125"
     elif ptype == "flashforge_5m":
         base = f"http://{host}:8898"
+    elif ptype == "elegoo_sdcp_fdm":
+        base = f"ws://{host}:3030/websocket"
     else:
         base = f"http://{host}"
     return {"id": host, "name": request.args.get("name") or host, "host": host,

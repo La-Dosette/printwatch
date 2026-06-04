@@ -46,11 +46,12 @@ format UI (état, progression, températures, webcam, santé, contrôles si poss
 
 | Connecteur | Marques / machines typiques | Statut | Config requise |
 |------------|-----------------------------|--------|----------------|
-| **Moonraker / Klipper** | Voron, Creality K1/K1 Max rootées ou compatibles, Ender-3 V3, Elegoo Neptune Klipper, Sovol… | ✅ Monitoring + contrôles + stats | IP uniquement (`7125`) |
+| **Moonraker / Klipper** | Voron, Creality K1/K1 Max rootées ou compatibles, Ender-3 V3, **Elegoo Neptune 4 / Pro / Plus / Max**, Sovol… | ✅ Monitoring + contrôles + stats | IP uniquement (`7125`) |
 | **OctoPrint** | Marlin via Raspberry/OctoPrint | ✅ Monitoring | IP + clé API OctoPrint |
 | **FlashForge Adventurer 5M / 5M Pro** | FlashForge AD5M / AD5M Pro en LAN | ✅ Monitoring de base | IP + `serialNumber` + `checkCode` (`8898`) |
+| **Elegoo SDCP FDM** | **Centauri Carbon / Centauri Carbon 2** | ✅ Monitoring de base | IP (`3030` WebSocket, webcam `3031/video`) |
 | **Creality LAN natif** | Creality Hi / K2 / certains K1 non-Moonraker | 🟡 À brancher | WebSocket local `9999` selon modèle |
-| **Elegoo SDCP** | Elegoo résine, Centauri Carbon | 🟡 À brancher | SDCP v3 / WebSocket + découverte |
+| **Elegoo SDCP résine** | Mars / Saturn / Jupiter récents | 🟡 Plus tard | SDCP v3 / WebSocket + découverte |
 | **Anycubic** | Kobra / Photon récents | 🟡 Variable | Rinkhals/Moonraker recommandé ; API locale officielle souvent fermée |
 | **Bambu Lab** | P/X/A series | 🟡 À brancher | MQTT LAN + access code |
 
