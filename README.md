@@ -50,6 +50,7 @@ format UI (état, progression, températures, webcam, santé, contrôles si poss
 | **OctoPrint** | Marlin via Raspberry/OctoPrint | ✅ Monitoring | IP + clé API OctoPrint |
 | **FlashForge Adventurer 5M / 5M Pro** | FlashForge AD5M / AD5M Pro en LAN | ✅ Monitoring de base | IP + `serialNumber` + `checkCode` (`8898`) |
 | **Elegoo SDCP FDM** | **Centauri Carbon / Centauri Carbon 2** | ✅ Monitoring de base | IP (`3030` WebSocket, webcam `3031/video`) |
+| **Bambu Lab MQTT LAN** | X1C/X1E, P1S/P1P, A1/A1 Mini, P2S… | ✅ Monitoring de base | IP + `serialNumber` + LAN Access Code (`8883`) |
 | **Creality LAN natif** | Creality Hi / K2 / certains K1 non-Moonraker | 🟡 À brancher | WebSocket local `9999` selon modèle |
 | **Elegoo SDCP résine** | Mars / Saturn / Jupiter récents | 🟡 Plus tard | SDCP v3 / WebSocket + découverte |
 | **Anycubic** | Kobra / Photon récents | 🟡 Variable | Rinkhals/Moonraker recommandé ; API locale officielle souvent fermée |
@@ -58,6 +59,18 @@ format UI (état, progression, températures, webcam, santé, contrôles si poss
 Le principe : si une marque n'a pas d'API locale ouverte, PrintWatch affichera un
 message clair au lieu de faire semblant. Les connecteurs sont ajoutés un par un dans
 `app.py` (`detect_protocol`, `fetch_<connecteur>`, puis branchement dans `fetch_status`).
+
+### Bambu Lab
+
+Pour Bambu Lab, active le mode LAN / Developer Mode côté imprimante puis renseigne :
+
+- **IP** : adresse locale de l'imprimante ;
+- **Serial / identifiant** : numéro de série ;
+- **Code / clé API** : LAN Access Code.
+
+Le monitoring passe par MQTT TLS local (`8883`). La caméra Bambu n'est pas affichée par
+défaut dans l'interface car elle n'est pas un flux MJPEG simple ; tu peux quand même
+renseigner une URL manuelle si tu utilises un proxy caméra compatible.
 
 ## 🏗️ Architecture : UI hébergée + agent local
 

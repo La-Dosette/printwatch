@@ -23,6 +23,7 @@ import json
 
 import requests
 import websocket
+import paho.mqtt.client as mqtt
 from flask import Flask, Response, jsonify, request, send_from_directory, stream_with_context
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -103,6 +104,8 @@ def _printer_from_cfg(item):
         base = f"http://{host}:8898"
     elif ptype == "elegoo_sdcp_fdm":
         base = f"ws://{host}:3030/websocket"
+    elif ptype == "bambulab_mqtt":
+        base = f"{host}:8883"
     else:
         base = f"http://{host}"
     return {"id": item.get("id") or host, "name": item.get("name") or host, "host": host,
@@ -185,6 +188,14 @@ def detect_protocol(host, apikey=None):
     try:
         with socket.create_connection((host_only, 3030), timeout=HTTP_TIMEOUT):
             return "elegoo_sdcp_fdm", f"ws://{host_only}:3030/websocket"
+    except OSError:
+        pass
+
+    # 5) Bambu Lab - MQTT local TLS sur 8883.
+    # Il faudra le serial + LAN Access Code pour lire le statut.
+    try:
+        with socket.create_connection((host_only, 8883), timeout=HTTP_TIMEOUT):
+            return "bambulab_mqtt", f"{host_only}:8883"
     except OSError:
         pass
 
@@ -581,6 +592,123 @@ def fetch_elegoo_sdcp_fdm(printer, base):
     }
 
 
+BAMBU_STATES = {
+    "IDLE": "idle",
+    "PREPARE": "printing",
+    "RUNNING": "printing",
+    "PAUSE": "paused",
+    "PAUSED": "paused",
+    "FINISH": "complete",
+    "FAILED": "error",
+    "FAILED_STOP": "error",
+    "SLICING": "printing",
+}
+
+
+def fetch_bambulab_mqtt(printer, base):
+    """Bambu Lab : statut local via MQTT TLS 8883 (LAN mode / developer mode)."""
+    host = (printer.get("host") or "").strip()
+    serial = (printer.get("serial") or "").strip()
+    access_code = (printer.get("apikey") or "").strip()
+    if not serial or not access_code:
+        return empty_status({
+            "error": "Bambu Lab : serialNumber et LAN Access Code requis."
+        })
+
+    report_topic = f"device/{serial}/report"
+    request_topic = f"device/{serial}/request"
+    received = {}
+    done = threading.Event()
+
+    def on_connect(client, userdata, flags, reason_code, properties=None):
+        try:
+            client.subscribe(report_topic)
+            client.publish(request_topic, json.dumps({"pushing": {
+                "sequence_id": str(int(time.time())),
+                "command": "pushall",
+            }}))
+        except Exception:
+            pass
+
+    def on_message(client, userdata, msg):
+        try:
+            payload = json.loads(msg.payload.decode("utf-8", "ignore"))
+        except (ValueError, UnicodeDecodeError):
+            return
+        if "print" in payload:
+            received.update(payload["print"] or {})
+            done.set()
+
+    try:
+        client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2,
+                             client_id=f"printwatch-{uuid.uuid4().hex[:8]}")
+        client.username_pw_set("bblp", access_code)
+        client.tls_set()
+        client.tls_insecure_set(True)
+        client.on_connect = on_connect
+        client.on_message = on_message
+        client.connect(host, 8883, keepalive=10)
+        client.loop_start()
+        done.wait(HTTP_TIMEOUT)
+        client.loop_stop()
+        client.disconnect()
+    except Exception:
+        return empty_status({"error": "Bambu Lab : connexion MQTT impossible"})
+
+    if not received:
+        return empty_status({"error": "Bambu Lab : aucun statut MQTT reçu"})
+
+    raw_state = str(received.get("gcode_state") or received.get("stg_cur") or "unknown")
+    state = BAMBU_STATES.get(raw_state.upper(), raw_state.lower())
+    progress = _safe_float(received.get("mc_percent"), 0)
+    if progress > 1:
+        progress /= 100
+
+    time_left = received.get("mc_remaining_time")
+    try:
+        # Bambu expose souvent les minutes restantes.
+        time_left = int(float(time_left) * 60) if time_left is not None else None
+    except (TypeError, ValueError):
+        time_left = None
+
+    filename = (received.get("subtask_name") or received.get("gcode_file") or
+                received.get("project_name") or None)
+
+    temps = {
+        "extruder": {
+            "actual": round(_safe_float(received.get("nozzle_temper")), 1),
+            "target": round(_safe_float(received.get("nozzle_target_temper")), 1),
+        },
+        "bed": {
+            "actual": round(_safe_float(received.get("bed_temper")), 1),
+            "target": round(_safe_float(received.get("bed_target_temper")), 1),
+        },
+    }
+    if received.get("chamber_temper") is not None:
+        temps["chamber"] = {
+            "actual": round(_safe_float(received.get("chamber_temper")), 1),
+            "target": 0,
+        }
+
+    sensors = {}
+    if received.get("layer_num") is not None and received.get("total_layer_num") is not None:
+        sensors["Layer"] = f"{received.get('layer_num')}/{received.get('total_layer_num')}"
+    if received.get("wifi_signal") is not None:
+        sensors["Wi-Fi"] = received.get("wifi_signal")
+
+    return {
+        "online": True,
+        "state": state,
+        "filename": filename,
+        "progress": round(max(0, min(progress, 1)), 4),
+        "time_left": time_left,
+        "temps": temps,
+        "sensors": sensors,
+        "system": {},
+        "error": None,
+    }
+
+
 def fetch_status(printer):
     ptype = printer.get("type")
     base = printer.get("base_url")
@@ -592,6 +720,8 @@ def fetch_status(printer):
         return fetch_flashforge_5m(printer, base)
     if ptype == "elegoo_sdcp_fdm":
         return fetch_elegoo_sdcp_fdm(printer, base)
+    if ptype == "bambulab_mqtt":
+        return fetch_bambulab_mqtt(printer, base)
     return empty_status({"error": "Protocole inconnu"})
 
 
@@ -764,6 +894,8 @@ def printer_from_params():
         base = f"http://{host}:8898"
     elif ptype == "elegoo_sdcp_fdm":
         base = f"ws://{host}:3030/websocket"
+    elif ptype == "bambulab_mqtt":
+        base = f"{host}:8883"
     else:
         base = f"http://{host}"
     return {"id": host, "name": request.args.get("name") or host, "host": host,
