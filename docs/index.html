@@ -654,18 +654,18 @@
 <div class="overlay" id="overlay">
   <div class="modal">
     <h2>Ajouter une imprimante</h2>
-    <div class="sub">Entre l'adresse IP â€” le protocole est dÃ©tectÃ© automatiquement.</div>
-    <label>Adresse IP / hÃ´te</label>
-    <input id="f-host" placeholder="192.168.1.15">
+    <div class="sub">Entre l'adresse IP ou l'URL complète. Certains modèles répondent mieux avec http:// devant.</div>
+    <label>Adresse IP / hôte</label>
+    <input id="f-host" placeholder="192.168.1.15 ou http://192.168.1.15">
     <label>Nom (optionnel)</label>
     <input id="f-name" placeholder="Voron 2.4 du garage">
     <label>URL webcam (optionnel)</label>
     <input id="f-webcam" placeholder="http://192.168.1.15/webcam/?action=stream">
-    <div class="hint">Vide = chemin standard Klipper essayÃ© automatiquement.</div>
+    <div class="hint">Vide = découverte automatique. K1/K1 Max : PrintWatch teste aussi http://IP:8080/?action=stream.</div>
     <label>Serial / identifiant (optionnel)</label>
-    <input id="f-serial" placeholder="FlashForge : serialNumber">
-    <label>Code / clÃ© API (optionnel)</label>
-    <input id="f-apikey" placeholder="OctoPrint : clÃ© API Â· FlashForge : checkCode">
+    <input id="f-serial" placeholder="FlashForge / Bambu : serialNumber">
+    <label>Code / clé API (optionnel)</label>
+    <input id="f-apikey" placeholder="OctoPrint : clé API · FlashForge : checkCode · Bambu : LAN Access Code">
     <div class="err" id="f-err"></div>
     <div class="row-btns">
       <button class="btn ghost" onclick="closeModal()">Annuler</button>
@@ -839,7 +839,7 @@ function pushMonitor(){
 const STATE_LABELS={printing:"Impression",paused:"En pause",complete:"TerminÃ©",completed:"TerminÃ©",
   standby:"PrÃªt",idle:"PrÃªt",ready:"PrÃªt",operational:"PrÃªt",busy:"OccupÃ©",heating:"Chauffe",
   pausing:"Pauseâ€¦",cancel:"AnnulÃ©",cancelled:"AnnulÃ©",stopped:"ArrÃªtÃ©",
-  error:"Erreur",offline:"Hors ligne",unknown:"â€”"};
+  camera:"Caméra seule",error:"Erreur",offline:"Hors ligne",unknown:"â€”"};
 
 function fmtTime(s){if(s==null)return"â€”";s=Math.round(s);const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);
   return h>0?h+"h"+String(m).padStart(2,"0"):m+" min";}
@@ -944,7 +944,15 @@ function createCard(p,i){
         </select>
         <button class="ctrl" onclick="control('${p.id}','cooldown')">â„ Refroidir</button>
         <button class="ctrl estop danger" onclick="control('${p.id}','estop',null,true)">ðŸ›‘ ArrÃªt</button>
+      </div>
+      <div class="controls">
+        <button class="ctrl" onclick="control('${p.id}','light_on')">Lumière ON</button>
+        <button class="ctrl" onclick="control('${p.id}','light_off')">Lumière OFF</button>
       </div>`:""}
+      <div class="controls">
+        <button class="ctrl" onclick="reloadCamera('${p.id}')">Caméra ↻</button>
+        <button class="ctrl" onclick="openCamera('${p.id}')">Caméra ouvrir</button>
+      </div>
     </div>
     <div class="card-foot"><button onclick="removePrinter('${p.id}','${esc(p.name)}')">âœ• Supprimer</button></div>`;
   document.getElementById("grid").appendChild(el);
@@ -974,6 +982,23 @@ function setCardWebcam(p){
   }
   img.src=api("/api/webcam?url="+encodeURIComponent(url));
 }
+
+function reloadCamera(id){
+  const p=printersById[id]; if(!p){toast("Caméra introuvable",true);return;}
+  const img=document.getElementById("cam-"+id),box=document.getElementById("wc-"+id);
+  const url=webcamUrl(p);
+  if(!url){toast("Aucune URL caméra configurée",true);return;}
+  if(box){box.dataset.msg=""; [...box.childNodes].forEach(n=>{if(n.nodeType===3)n.remove();});}
+  if(img){img.style.display="block"; img.src=api("/api/webcam?url="+encodeURIComponent(url)+"&t="+Date.now());}
+}
+
+function openCamera(id){
+  const p=printersById[id]; if(!p){toast("Caméra introuvable",true);return;}
+  const url=webcamUrl(p);
+  if(!url){toast("Aucune URL caméra configurée",true);return;}
+  window.open(url,"_blank","noopener");
+}
+
 // Mappage couleur â†’ encre/gris quand le skin Archive est actif (canvas non stylable en CSS)
 const ARCH_MAP={"#ff6b6b":"#1A1A1A","#ff9f43":"#6b685f","#ffd36b":"#b0ab9b",
   "#6c8cff":"#1A1A1A","#ff8c42":"#6b685f"};
@@ -1056,7 +1081,7 @@ async function addPrinter(){
     const d=await r.json();
     if(!r.ok){err.textContent=d.error||"Aucune imprimante dÃ©tectÃ©e. L'agent local tourne-t-il ?";return;}
     const printer={id:"p"+Date.now().toString(36)+Math.random().toString(36).slice(2,5),
-      name:name||d.host,host:d.host,type:d.type,serial,apikey,webcam};
+      name:name||d.host,host:d.host,type:d.type,serial,apikey,webcam:webcam||d.webcam||""};
     const list=LS.printers(); list.push(printer); LS.setPrinters(list);
     pushMonitor();
     closeModal();await loadPrinters();
@@ -1263,7 +1288,9 @@ async function control(id,action,material,confirmNeeded){
     const d=await r.json();
     if(!r.ok){toast(d.error||"Ã‰chec de la commande",true);return;}
     const msg={pause:"â¸ Mise en pause",resume:"â–¶ Reprise",cancel:"Impression annulÃ©e",
-      estop:"ðŸ›‘ ArrÃªt d'urgence envoyÃ©",cooldown:"â„ Chauffes coupÃ©es",preheat:"ðŸ”¥ PrÃ©chauffe "+(material||"")};
+      estop:"ðŸ›‘ ArrÃªt d'urgence envoyÃ©",cooldown:"â„ Chauffes coupÃ©es",
+      light_on:"Lumière allumée",light_off:"Lumière éteinte",
+      preheat:"ðŸ”¥ PrÃ©chauffe "+(material||"")};
     toast(msg[action]||"Commande envoyÃ©e");
     setTimeout(poll,600);
   }catch(e){toast("Erreur rÃ©seau",true);}

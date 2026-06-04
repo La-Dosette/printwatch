@@ -47,6 +47,7 @@ format UI (état, progression, températures, webcam, santé, contrôles si poss
 | Connecteur | Marques / machines typiques | Statut | Config requise |
 |------------|-----------------------------|--------|----------------|
 | **Moonraker / Klipper** | Voron, Creality K1/K1 Max rootées ou compatibles, Ender-3 V3, **Elegoo Neptune 4 / Pro / Plus / Max**, Sovol… | ✅ Monitoring + contrôles + stats | IP uniquement (`7125`) |
+| **Creality K1/K1 Max caméra seule** | K1/K1 Max quand Moonraker est fermé mais caméra locale active | ✅ Webcam uniquement | IP ou `http://IP`, auto-détection `:8080/?action=stream` |
 | **OctoPrint** | Marlin via Raspberry/OctoPrint | ✅ Monitoring | IP + clé API OctoPrint |
 | **FlashForge Adventurer 5M / 5M Pro** | FlashForge AD5M / AD5M Pro en LAN | ✅ Monitoring de base | IP + `serialNumber` + `checkCode` (`8898`) |
 | **Elegoo SDCP FDM** | **Centauri Carbon / Centauri Carbon 2** | ✅ Monitoring de base | IP (`3030` WebSocket, webcam `3031/video`) |
@@ -59,6 +60,20 @@ format UI (état, progression, températures, webcam, santé, contrôles si poss
 Le principe : si une marque n'a pas d'API locale ouverte, PrintWatch affichera un
 message clair au lieu de faire semblant. Les connecteurs sont ajoutés un par un dans
 `app.py` (`detect_protocol`, `fetch_<connecteur>`, puis branchement dans `fetch_status`).
+
+### Creality K1 / K1 Max
+
+Deux cas existent :
+
+- **Moonraker ouvert** (`http://IP:7125`) : PrintWatch récupère état, progression,
+  températures, historique et peut envoyer les contrôles Klipper.
+- **Moonraker fermé / firmware stock** : PrintWatch tente quand même la caméra locale
+  (`http://IP:8080/?action=stream`, `/webcam/?action=stream`, ports Fluidd/Mainsail).
+  Dans ce mode, la carte est ajoutée en **caméra seule**.
+
+Tu peux entrer `192.168.x.x` ou `http://192.168.x.x`. Si une URL complète avec port
+fonctionne mieux chez toi, colle-la directement dans le champ IP/hôte ou dans le champ
+URL webcam.
 
 ### Bambu Lab
 

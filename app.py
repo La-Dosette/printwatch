@@ -62,6 +62,67 @@ HTTP_TIMEOUT = 4
 _objects_cache = {}
 
 
+def normalize_host(raw):
+    """Retourne (clean_host, host_only, explicit_base_http).
+
+    clean_host conserve le port fourni, host_only retire le port, explicit_base_http
+    permet de tester directement une URL complete collee par l'utilisateur.
+    """
+    value = (raw or "").strip().rstrip("/")
+    explicit_base = None
+    if value.startswith(("http://", "https://")):
+        explicit_base = value.split("/", 3)[:3]
+        explicit_base = "/".join(explicit_base)
+        value = value.split("://", 1)[1]
+    value = value.split("/", 1)[0]
+    host_only = value.split(":", 1)[0]
+    return value, host_only, explicit_base
+
+
+def _webcam_candidates(host):
+    clean, host_only, explicit_base = normalize_host(host)
+    bases = []
+    if explicit_base:
+        bases.append(explicit_base)
+    bases += [
+        f"http://{host_only}:8080",
+        f"http://{host_only}",
+        f"http://{host_only}:4408",
+        f"http://{host_only}:4409",
+    ]
+    paths = [
+        "/?action=stream",              # Creality K1/K1 Max stock camera
+        "/webcam/?action=stream",       # Moonraker / Fluidd / Mainsail standard
+        "/webcam?action=stream",
+        "/stream",
+        "/video",
+    ]
+    out = []
+    for base in bases:
+        for path in paths:
+            url = base.rstrip("/") + path
+            if url not in out:
+                out.append(url)
+    return out
+
+
+def discover_webcam(host):
+    """Essaie les URLs webcam locales connues et retourne la premiere qui repond."""
+    for url in _webcam_candidates(host):
+        try:
+            r = requests.get(url, stream=True, timeout=1.5)
+            ctype = (r.headers.get("Content-Type") or "").lower()
+            if r.ok or r.status_code == 401:
+                if ("image" in ctype or "multipart" in ctype or
+                        "octet-stream" in ctype or "text/html" not in ctype):
+                    r.close()
+                    return url
+            r.close()
+        except requests.RequestException:
+            pass
+    return ""
+
+
 # --------------------------------------------------------------------------
 # Alertes Discord (webhook) + surveillance en arriere-plan
 # --------------------------------------------------------------------------
@@ -106,6 +167,8 @@ def _printer_from_cfg(item):
         base = f"ws://{host}:3030/websocket"
     elif ptype == "bambulab_mqtt":
         base = f"{host}:8883"
+    elif ptype == "camera_only":
+        base = item.get("webcam") or discover_webcam(host)
     else:
         base = f"http://{host}"
     return {"id": item.get("id") or host, "name": item.get("name") or host, "host": host,
@@ -144,23 +207,17 @@ def monitor_loop():
 # --------------------------------------------------------------------------
 def detect_protocol(host, apikey=None):
     """Sonde l'hote pour deviner le firmware. Retourne (type, base_url) ou (None, None)."""
-    host = host.strip().rstrip("/")
-    # L'utilisateur peut coller une URL complete ; on garde juste l'hote.
-    if host.startswith("http://"):
-        host = host[len("http://"):]
-    elif host.startswith("https://"):
-        host = host[len("https://"):]
-    host = host.split("/")[0]
-    host_only = host.split(":")[0]
+    raw_host = host
+    host, host_only, explicit_base = normalize_host(host)
 
     # 1) Moonraker (Klipper) - port 7125, pas d'auth par defaut. Cas le plus courant.
-    try:
-        base = f"http://{host_only}:7125"
-        r = requests.get(f"{base}/printer/info", timeout=HTTP_TIMEOUT)
-        if r.ok and "result" in r.json():
-            return "moonraker", base
-    except (requests.RequestException, ValueError):
-        pass
+    for base in [b for b in (explicit_base, f"http://{host_only}:7125") if b]:
+        try:
+            r = requests.get(f"{base}/printer/info", timeout=HTTP_TIMEOUT)
+            if r.ok and "result" in r.json():
+                return "moonraker", base
+        except (requests.RequestException, ValueError):
+            pass
 
     # 2) OctoPrint - port 80 (ou celui fourni), necessite une cle API pour les donnees.
     try:
@@ -198,6 +255,11 @@ def detect_protocol(host, apikey=None):
             return "bambulab_mqtt", f"{host_only}:8883"
     except OSError:
         pass
+
+    # 6) Webcam seule - utile pour Creality K1/K1 Max quand Moonraker est ferme.
+    cam = discover_webcam(raw_host)
+    if cam:
+        return "camera_only", cam
 
     return None, None
 
@@ -722,6 +784,8 @@ def fetch_status(printer):
         return fetch_elegoo_sdcp_fdm(printer, base)
     if ptype == "bambulab_mqtt":
         return fetch_bambulab_mqtt(printer, base)
+    if ptype == "camera_only":
+        return {**empty_status(), "online": True, "state": "camera", "error": None}
     return empty_status({"error": "Protocole inconnu"})
 
 
@@ -878,6 +942,19 @@ def _moonraker_gcode(base, script):
                   timeout=HTTP_TIMEOUT).raise_for_status()
 
 
+def _try_moonraker_gcodes(base, scripts):
+    last_error = None
+    for script in scripts:
+        try:
+            _moonraker_gcode(base, script)
+            return True
+        except requests.RequestException as exc:
+            last_error = exc
+    if last_error:
+        raise last_error
+    return False
+
+
 # ==========================================================================
 # AGENT SANS ETAT — endpoints parametres par l'hote (config cote navigateur)
 # L'UI (hebergeable sur github.io) stocke la config en localStorage et passe
@@ -896,6 +973,8 @@ def printer_from_params():
         base = f"ws://{host}:3030/websocket"
     elif ptype == "bambulab_mqtt":
         base = f"{host}:8883"
+    elif ptype == "camera_only":
+        base = request.args.get("webcam", "") or discover_webcam(host)
     else:
         base = f"http://{host}"
     return {"id": host, "name": request.args.get("name") or host, "host": host,
@@ -913,12 +992,12 @@ def api_detect():
     if not ptype:
         return jsonify({"error": "Aucune imprimante detectee a cette adresse. "
                         "Verifie l'IP / que l'agent et la machine sont sur le reseau."}), 422
-    clean = host
-    for pre in ("http://", "https://"):
-        if clean.startswith(pre):
-            clean = clean[len(pre):]
-    clean = clean.split("/")[0].split(":")[0] if ptype == "moonraker" else clean.split("/")[0]
-    return jsonify({"type": ptype, "host": clean, "base": base})
+    clean, host_only, _explicit = normalize_host(host)
+    clean = host_only if ptype in ("moonraker", "camera_only") else clean
+    webcam = discover_webcam(host) if ptype != "bambulab_mqtt" else ""
+    if ptype == "camera_only":
+        webcam = base
+    return jsonify({"type": ptype, "host": clean, "base": base, "webcam": webcam})
 
 
 @app.route("/api/status")
@@ -973,6 +1052,24 @@ def api_control_q():
             _moonraker_post(base, "/printer/emergency_stop")
         elif action == "cooldown":
             _moonraker_gcode(base, "TURN_OFF_HEATERS")
+        elif action == "light_on":
+            _try_moonraker_gcodes(base, [
+                "SET_PIN PIN=caselight VALUE=1",
+                "SET_PIN PIN=LED VALUE=1",
+                "SET_PIN PIN=light VALUE=1",
+                "SET_PIN PIN=chamber_light VALUE=1",
+                "M355 S1",
+                "LED_ON",
+            ])
+        elif action == "light_off":
+            _try_moonraker_gcodes(base, [
+                "SET_PIN PIN=caselight VALUE=0",
+                "SET_PIN PIN=LED VALUE=0",
+                "SET_PIN PIN=light VALUE=0",
+                "SET_PIN PIN=chamber_light VALUE=0",
+                "M355 S0",
+                "LED_OFF",
+            ])
         elif action == "preheat":
             preset = PREHEAT.get(data.get("material"))
             if not preset:
