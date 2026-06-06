@@ -1,9 +1,9 @@
 ﻿<!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PrintWatch — Monitoring 3D</title>
+<title>PrintWatch - 3D Monitoring</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.svg">
@@ -27,8 +27,8 @@
   html,body{height:100%}
   body{font-family:'Space Grotesk',system-ui,sans-serif;background:var(--bg);color:var(--txt);overflow-x:hidden}
 
-  /* ---- Fond anime (mesh gradient + blobs) ---- */
-  /* Fond statique peint une seule fois (aucune animation = zero charge GPU continue) */
+  /* ---- Background anime (mesh gradient + blobs) ---- */
+  /* Background statique peint une seule fois (aucune animation = zero charge GPU continue) */
   .bg{position:fixed;inset:0;z-index:-2;
     background:
       radial-gradient(46vw 46vw at 12% 6%, rgba(59,79,255,.32), transparent 60%),
@@ -37,7 +37,7 @@
   .blob{display:none}   /* remplaces par le degrade statique ci-dessus */
 
   /* ---- Header ---- */
-  /* Fond opaque (pas de backdrop-filter) : header collant sans recompositing au scroll */
+  /* Background opaque (pas de backdrop-filter) : header collant sans recompositing au scroll */
   header{display:flex;align-items:center;justify-content:space-between;padding:22px 34px;
     background:var(--bg);position:sticky;top:0;z-index:20;border-bottom:1px solid var(--glass-brd)}
   .brand{display:flex;align-items:center;gap:13px;font-size:21px;font-weight:700;letter-spacing:-.02em}
@@ -57,7 +57,7 @@
   .wrap{padding:30px 34px 60px;display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:26px}
 
   /* ---- Carte glassmorphism ---- */
-  /* Fond opaque + contain:paint : repeindre un chiffre ne repeint PAS toute la carte ni son ombre */
+  /* Background opaque + contain:paint : repeindre un chiffre ne repeint PAS toute la carte ni son ombre */
   .card{background:var(--surface);border:1px solid var(--glass-brd);border-radius:22px;overflow:hidden;
     position:relative;box-shadow:0 12px 28px rgba(0,0,0,.4);contain:layout style paint;
     animation:cardIn .55s cubic-bezier(.16,1,.3,1) both;transition:transform .2s,box-shadow .2s}
@@ -108,7 +108,7 @@
   .eta{font-size:12px;color:var(--muted);margin-top:6px;display:flex;align-items:center;gap:6px}
   .eta b{color:var(--txt);font-family:'JetBrains Mono',monospace;font-weight:500}
 
-  /* ---- Températures ---- */
+  /* ---- Temperatures ---- */
   .temps{display:flex;gap:10px;margin-bottom:14px}
   .temp{flex:1;background:var(--surface2);border:1px solid var(--glass-brd);border-radius:14px;padding:11px 12px;
     position:relative;overflow:hidden;contain:layout style paint}
@@ -166,7 +166,7 @@
     background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 4px 16px rgba(108,140,255,.45);
     transition:left .35s cubic-bezier(.34,1.4,.5,1),width .35s cubic-bezier(.34,1.4,.5,1)}
 
-  /* ---- Vue Statistiques ---- */
+  /* ---- Vue Stats ---- */
   .stats-wrap{grid-template-columns:1fr;max-width:1100px;margin:0 auto}
   .stat-block{animation:cardIn .6s cubic-bezier(.16,1,.3,1) both}
   .stat-head{display:flex;align-items:center;gap:10px;margin-bottom:16px;font-size:18px;font-weight:600}
@@ -219,7 +219,7 @@
   body[data-theme="light"] .card,body[data-theme="light"] .kpi,body[data-theme="light"] .job{box-shadow:0 10px 30px rgba(80,90,130,.12)}
   body[data-theme="light"] header{background:var(--bg)}
 
-  /* ---- Graphe d'activite & filament ---- */
+  /* ---- Chart d'activite & filament ---- */
   .panels{display:grid;grid-template-columns:1.4fr 1fr;gap:14px;margin-bottom:24px}
   @media(max-width:760px){.panels{grid-template-columns:1fr}}
   .panel{background:var(--surface);border:1px solid var(--glass-brd);border-radius:18px;padding:16px 18px}
@@ -319,7 +319,7 @@
   .card.hide-controls .controls{display:none}
   .card.hide-health .health{display:none}
 
-  /* ---- Apparence : champs couleur ---- */
+  /* ---- Look : champs couleur ---- */
   .appearance-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
   .color-field{display:flex;align-items:center;gap:10px}
   .color-field input[type=color]{width:42px;height:38px;padding:2px;border-radius:10px;cursor:pointer;background:var(--surface2)}
@@ -439,7 +439,7 @@
   body.bg-subtle .bg{opacity:.38}
   body.bg-flat .bg{background:var(--bg)!important}
 
-  /* --- Police --- */
+  /* --- Font --- */
   body.font-system{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
   body.font-mono-ui{font-family:'JetBrains Mono','Space Grotesk',ui-monospace,monospace}
 
@@ -451,7 +451,7 @@
   body.radius-round .pw,body.radius-round .modal,body.radius-round .temp,body.radius-round .health,
   body.radius-round .webcam{border-radius:26px!important}
 
-  /* --- Densité (espacement) --- */
+  /* --- Density (espacement) --- */
   body.dense .wrap{gap:14px}
   body.dense .body{padding:13px 15px}
   body.dense .card-head{padding:12px 15px 10px}
@@ -530,14 +530,14 @@
   body.skin-archive .webcam{background:var(--ink);color:var(--paper);border-bottom:1px solid var(--ink)}
   body.skin-archive .webcam .scan{display:none}
 
-  /* — Progression — */
+  /* — Progress — */
   body.skin-archive .ring .track{stroke:rgba(26,26,26,.12)}
   body.skin-archive .ring .fill{stroke:var(--ink)}
   body.skin-archive .pct,body.skin-archive .pw-pct{font-family:'Archivo Black';color:var(--ink)}
   body.skin-archive .filename,body.skin-archive .eta,body.skin-archive .eta b{font-family:'Space Mono';color:var(--ink)}
   body.skin-archive .eta b{font-weight:700}
 
-  /* — Températures : champs type formulaire à filets — */
+  /* — Temperatures : champs type formulaire à filets — */
   body.skin-archive .temps{gap:0;border:1px solid var(--ink)}
   body.skin-archive .temp{background:none;border:0;border-left:1px solid var(--ink);border-radius:0;padding:10px 12px}
   body.skin-archive .temp:first-child{border-left:0}
@@ -547,21 +547,21 @@
   body.skin-archive .temp .tgt{font-family:'Space Mono';color:var(--ink2)}
   body.skin-archive .temp .heat{background:var(--ink)!important;opacity:.3}
 
-  /* — Santé machine — */
+  /* — Machine Health — */
   body.skin-archive .health{background:none;border:1px solid var(--ink);border-radius:0}
   body.skin-archive .hstat span{font-family:'Space Mono';color:var(--ink2)}
   body.skin-archive .hstat b{font-family:'Archivo Black';color:var(--ink)}
   body.skin-archive .schip{border:1px solid var(--ink);border-radius:0;background:none;color:var(--ink);font-family:'Space Mono'}
   body.skin-archive .schip b{color:var(--ink)}
 
-  /* — Contrôles — */
+  /* — Controls — */
   body.skin-archive .ctrl,body.skin-archive .ctrl-select{border:1px solid var(--ink);border-radius:0;background:none;
     color:var(--ink);font-family:'Space Mono';font-weight:700;text-transform:uppercase}
   body.skin-archive .ctrl:hover:not(:disabled){background:var(--ink);color:var(--paper)}
   body.skin-archive .ctrl.estop{color:var(--ink)}
   body.skin-archive .card-foot{border-top:1px solid var(--ink)}
 
-  /* — Statistiques — */
+  /* — Stats — */
   body.skin-archive .kpi,body.skin-archive .panel,body.skin-archive .job{background:var(--paper);
     border:1px solid var(--ink);border-radius:0}
   body.skin-archive .kpi::after{display:none}
@@ -575,7 +575,7 @@
   body.skin-archive .ft-bar>div{background:var(--ink)!important;border-radius:0}
   body.skin-archive .cost .total{color:var(--ink)}
 
-  /* — Panneaux libres — */
+  /* — Panels libres — */
   body.skin-archive .pw{background:var(--paper);border:1px solid var(--ink);border-radius:0}
   body.skin-archive .pw-header{border-bottom:1px solid var(--ink)}
   body.skin-archive .pw-title{font-family:'Space Mono';color:var(--ink2)}
@@ -612,20 +612,20 @@
     <span class="logo" id="brand-logo" style="background:transparent;box-shadow:none;width:38px;height:38px">
       <img src="static/logo.svg" alt="PrintWatch" style="width:100%;height:100%;object-fit:contain">
     </span>
-    <span id="brand-name">PrintWatch</span> <small>universel</small>
+    <span id="brand-name">PrintWatch</span> <small>local</small>
   </div>
   <nav class="tabs">
-    <button class="tab active" data-tab="dashboard" onclick="switchTab('dashboard')">Tableau de bord</button>
-    <button class="tab" data-tab="stats" onclick="switchTab('stats')">Statistiques</button>
-    <button class="tab" data-tab="panels" onclick="switchTab('panels')">Panneaux</button>
+    <button class="tab active" data-tab="dashboard" onclick="switchTab('dashboard')">Dashboard</button>
+    <button class="tab" data-tab="stats" onclick="switchTab('stats')">Stats</button>
+    <button class="tab" data-tab="panels" onclick="switchTab('panels')">Panels</button>
     <span class="tab-ind" id="tab-ind"></span>
   </nav>
   <div class="head-actions">
     <button class="icon-btn" id="compact-btn" title="Vue compacte" onclick="toggleCompact()">&#9638;</button>
-    <button class="icon-btn" title="Réglages & alertes Discord" onclick="openSettings()">&#9881;</button>
-    <button class="icon-btn neon-only" id="theme-btn" title="Thème clair / sombre" onclick="toggleTheme()">&#9790;</button>
-    <button class="icon-btn" title="Mode TV (plein écran)" onclick="toggleTV()">TV</button>
-    <button class="btn" onclick="openModal()">+ Ajouter</button>
+    <button class="icon-btn" title="Settings and Discord alerts" onclick="openSettings()">&#9881;</button>
+    <button class="icon-btn neon-only" id="theme-btn" title="Theme clair / sombre" onclick="toggleTheme()">&#9790;</button>
+    <button class="icon-btn" title="TV mode" onclick="toggleTV()">TV</button>
+    <button class="btn" onclick="openModal()">+ Add</button>
   </div>
 </header>
 
@@ -633,14 +633,14 @@
 <div id="view-stats" style="display:none"><div class="wrap stats-wrap" id="stats"></div></div>
 <div id="view-panels" style="display:none">
   <div class="panel-toolbar">
-    <span class="pt-label">Layout :</span>
-    <select id="layout-select" onchange="switchLayout(this.value)"><option value="">-- nouveau --</option></select>
+    <span class="pt-label">Layout:</span>
+    <select id="layout-select" onchange="switchLayout(this.value)"><option value="">-- new --</option></select>
     <input class="pt-name" id="layout-name" placeholder="Nom du layout…" maxlength="30">
-    <button class="pt-btn" onclick="saveCurrentLayout()">Enregistrer</button>
-    <button class="pt-btn danger" onclick="deleteCurrentLayout()" title="Supprimer ce layout">Supprimer</button>
+    <button class="pt-btn" onclick="saveCurrentLayout()">Save</button>
+    <button class="pt-btn danger" onclick="deleteCurrentLayout()" title="Delete this layout">Delete</button>
     <div class="pt-sep"></div>
     <button class="pt-btn" onclick="openWidgetPicker()">+ Widget</button>
-    <button class="pt-btn" id="edit-btn" onclick="toggleEditMode()">Editer</button>
+    <button class="pt-btn" id="edit-btn" onclick="toggleEditMode()">Edit</button>
   </div>
   <div class="panel-grid-outer">
     <div class="panel-grid" id="panel-grid">
@@ -655,64 +655,64 @@
 
 <div class="overlay" id="overlay">
   <div class="modal">
-    <h2>Ajouter une imprimante</h2>
-    <div class="sub">Entre l'adresse IP ou l'URL complète. Certains modèles répondent mieux avec http:// devant.</div>
-    <label>Adresse IP / hôte</label>
+    <h2>Add Printer</h2>
+    <div class="sub">Enter an IP address or full URL.</div>
+    <label>IP / host</label>
     <input id="f-host" placeholder="192.168.1.15 ou http://192.168.1.15">
-    <label>Nom (optionnel)</label>
+    <label>Name (optional)</label>
     <input id="f-name" placeholder="Voron 2.4 du garage">
-    <label>URL webcam (optionnel)</label>
+    <label>Webcam URL (optional)</label>
     <input id="f-webcam" placeholder="http://192.168.1.15/webcam/?action=stream">
-    <div class="hint">Vide = découverte automatique. K1/K1 Max : PrintWatch teste aussi http://IP:8080/?action=stream.</div>
-    <label>Serial / identifiant (optionnel)</label>
+    <div class="hint">Empty = auto detect.</div>
+    <label>Serial / ID (optional)</label>
     <input id="f-serial" placeholder="FlashForge / Bambu : serialNumber">
-    <label>Code / clé API (optionnel)</label>
-    <input id="f-apikey" placeholder="OctoPrint : clé API · FlashForge : checkCode · Bambu : LAN Access Code">
+    <label>Code / API key (optional)</label>
+    <input id="f-apikey" placeholder="OctoPrint API key · FlashForge checkCode · Bambu LAN Access Code">
     <div class="err" id="f-err"></div>
     <div class="row-btns">
-      <button class="btn ghost" onclick="closeModal()">Annuler</button>
-      <button class="btn" id="f-submit" onclick="addPrinter()">Détecter &amp; ajouter</button>
+      <button class="btn ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn" id="f-submit" onclick="addPrinter()">Detect and add</button>
     </div>
   </div>
 </div>
 
 <div class="overlay" id="jd-overlay">
   <div class="modal" style="width:min(560px,94vw)">
-    <h2 id="jd-name">Détail de l'impression</h2>
+    <h2 id="jd-name">Print Details</h2>
     <div class="sub" id="jd-status"></div>
     <div class="jd-grid">
       <img class="jd-thumb" id="jd-thumb" alt="" onerror="this.style.visibility='hidden'">
       <div class="jd-info"><div class="jd-rows" id="jd-rows"></div></div>
     </div>
-    <div class="row-btns"><button class="btn ghost" onclick="closeJob()">Fermer</button></div>
+    <div class="row-btns"><button class="btn ghost" onclick="closeJob()">Close</button></div>
   </div>
 </div>
 
 <div class="overlay" id="set-overlay">
   <div class="modal">
-    <h2>Réglages &amp; alertes</h2>
-    <div class="sub">Reçois une notification Discord quand une impression se termine, échoue, etc.</div>
-    <label>Agent local (avancé)</label>
+    <h2>Settings and Alerts</h2>
+    <div class="sub">Optional Discord notifications.</div>
+    <label>Local agent</label>
     <input id="set-agent" placeholder="http://localhost:8088">
-    <div class="hint">Adresse de l'agent qui relaie vers tes imprimantes. Vide = même origine (app locale).</div>
+    <div class="hint">Agent URL. Empty = this app.</div>
     <label>Webhook Discord</label>
     <input id="set-webhook" placeholder="https://discord.com/api/webhooks/...">
-    <div class="hint">Discord → Paramètres du salon → Intégrations → Webhooks → Nouveau → copier l'URL. Vide = désactivé.</div>
+    <div class="hint">Discord channel settings -> Integrations -> Webhooks -> New -> copy URL. Empty = disabled.</div>
     <div class="alerts-toggles">
-      <label class="chk"><input type="checkbox" id="al-complete"> Fin d'impression</label>
-      <label class="chk"><input type="checkbox" id="al-error"> Erreurs</label>
-      <label class="chk"><input type="checkbox" id="al-offline"> Déconnexion / reconnexion</label>
+      <label class="chk"><input type="checkbox" id="al-complete"> Print complete</label>
+      <label class="chk"><input type="checkbox" id="al-error"> Errors</label>
+      <label class="chk"><input type="checkbox" id="al-offline"> Offline / online</label>
     </div>
-    <div class="section-sep">Apparence</div>
-    <label>Nom du dashboard</label>
+    <div class="section-sep">Look</div>
+    <label>Dashboard name</label>
     <input id="set-name" placeholder="PrintWatch">
-    <label>Logo (emoji ou URL d'image)</label>
-    <input id="set-logo" placeholder="Imprimante  ou  https://exemple.com/logo.png">
+    <label>Logo text or image URL</label>
+    <input id="set-logo" placeholder="Printer  ou  https://exemple.com/logo.png">
     <div class="neon-only">
-      <label>Couleurs</label>
+      <label>Colors</label>
       <div class="appearance-grid">
         <div class="color-field"><input type="color" id="set-accent" value="#6c8cff"><span>Accent</span></div>
-        <div class="color-field"><input type="color" id="set-accent2" value="#a06bff"><span>Secondaire</span></div>
+        <div class="color-field"><input type="color" id="set-accent2" value="#a06bff"><span>Secondary</span></div>
       </div>
       <div class="preset-row" id="preset-row"></div>
     </div>
@@ -721,69 +721,69 @@
       <div><label>Style</label>
         <select id="set-skin">
           <option value="archive">Archive (Swiss)</option>
-          <option value="neon">Néon (original)</option>
+          <option value="neon">Neon</option>
         </select></div>
       <div><label>Animations</label>
         <select id="set-anim">
-          <option value="full">Complètes</option>
-          <option value="reduced">Réduites (perf)</option>
-          <option value="none">Aucune (perf max)</option>
+          <option value="full">Full</option>
+          <option value="reduced">Reduced</option>
+          <option value="none">None</option>
         </select></div>
-      <div><label>Densité</label>
+      <div><label>Density</label>
         <select id="set-density">
-          <option value="comfort">Confort</option>
-          <option value="dense">Compacte</option>
+          <option value="comfort">Comfort</option>
+          <option value="dense">Compact</option>
         </select></div>
-      <div class="neon-only"><label>Fond</label>
+      <div class="neon-only"><label>Background</label>
         <select id="set-bg">
-          <option value="color">Dégradé coloré</option>
-          <option value="subtle">Sobre</option>
-          <option value="flat">Uni</option>
+          <option value="color">Color</option>
+          <option value="subtle">Subtle</option>
+          <option value="flat">Flat</option>
         </select></div>
-      <div class="neon-only"><label>Police</label>
+      <div class="neon-only"><label>Font</label>
         <select id="set-font">
           <option value="rounded">Space Grotesk</option>
-          <option value="system">Système</option>
+          <option value="system">System</option>
           <option value="mono-ui">Monospace</option>
         </select></div>
-      <div class="neon-only"><label>Coins</label>
+      <div class="neon-only"><label>Corners</label>
         <select id="set-radius">
-          <option value="normal">Normaux</option>
-          <option value="sharp">Carrés</option>
-          <option value="round">Très arrondis</option>
+          <option value="normal">Normal</option>
+          <option value="sharp">Sharp</option>
+          <option value="round">Round</option>
         </select></div>
-      <div class="neon-only"><label>Thème</label>
+      <div class="neon-only"><label>Theme</label>
         <select id="set-theme">
-          <option value="dark">Sombre</option>
-          <option value="light">Clair</option>
+          <option value="dark">Dark</option>
+          <option value="light">Light</option>
         </select></div>
     </div>
-    <div class="hint neon-only" style="margin-top:10px">Astuce : pour réduire le lag, utilise animations "Réduites" + fond "Uni".</div>
+    <div class="hint neon-only" style="margin-top:10px">Tip: use reduced animations and a flat background on slow machines.</div>
     <div class="err" id="set-err"></div>
     <div class="row-btns">
-      <button class="btn ghost" onclick="testWebhook()">Tester</button>
-      <button class="btn ghost" onclick="closeSettings()">Fermer</button>
-      <button class="btn" onclick="saveSettings()">Enregistrer</button>
+      <button class="btn ghost" onclick="testWebhook()">Test</button>
+      <button class="btn ghost" onclick="closeSettings()">Close</button>
+      <button class="btn" onclick="saveSettings()">Save</button>
     </div>
   </div>
 </div>
 
 <div class="overlay" id="wp-overlay">
   <div class="modal" style="width:min(520px,94vw)">
-    <h2>Ajouter un widget</h2>
-    <div class="sub">Choisis l'imprimante puis le type de widget.</div>
-    <label>Imprimante</label>
+    <h2>Add Widget</h2>
+    <div class="sub">Choose a printer and widget type.</div>
+    <label>Printer</label>
     <select class="wp-printers" id="wp-printer" style="width:100%;font:inherit;padding:10px 12px;border-radius:10px;border:1px solid var(--glass-brd);background:var(--surface2);color:var(--txt)"></select>
     <div class="wp-types" id="wp-types">
-      <div class="wp-type" onclick="addWidget('progress')"><div class="ico">⭕</div><div class="lbl">Progression</div><div class="desc">Anneau + fichier + ETA</div></div>
-      <div class="wp-type" onclick="addWidget('temps')"><div class="ico">Temp</div><div class="lbl">Températures</div><div class="desc">Buse · plateau · chambre</div></div>
-      <div class="wp-type" onclick="addWidget('health')"><div class="ico">PC</div><div class="lbl">Santé machine</div><div class="desc">CPU · RAM · capteurs</div></div>
-      <div class="wp-type" onclick="addWidget('chart')"><div class="ico">Graph</div><div class="lbl">Graphe</div><div class="desc">Températures temps réel</div></div>
-      <div class="wp-type" onclick="addWidget('webcam')"><div class="ico">Cam</div><div class="lbl">Webcam</div><div class="desc">Flux vidéo live</div></div>
-      <div class="wp-type" onclick="addWidget('controls')"><div class="ico">Ctrl</div><div class="lbl">Contrôles</div><div class="desc">Pause · reprise · préchauffe</div></div>
+      <div class="wp-type" onclick="addWidget('progress')"><div class="ico">⭕</div><div class="lbl">Progress</div><div class="desc">Ring, file, ETA</div></div>
+      <div class="wp-type" onclick="addWidget('temps')"><div class="ico">Temp</div><div class="lbl">Temperatures</div><div class="desc">Nozzle, bed, chamber</div></div>
+      <div class="wp-type" onclick="addWidget('health')"><div class="ico">PC</div><div class="lbl">Machine Health</div><div class="desc">CPU, RAM, sensors</div></div>
+      <div class="wp-type" onclick="addWidget('chart')"><div class="ico">Graph</div><div class="lbl">Chart</div><div class="desc">Live temperatures</div></div>
+      <div class="wp-type" onclick="addWidget('webcam')"><div class="ico">Cam</div><div class="lbl">Webcam</div><div class="desc">Live video</div></div>
+      <div class="wp-type" onclick="addWidget('controls')"><div class="ico">Ctrl</div><div class="lbl">Controls</div><div class="desc">Pause, resume, preheat</div></div>
     </div>
     <div class="row-btns" style="margin-top:18px">
-      <button class="btn ghost" onclick="closeWidgetPicker()">Annuler</button>
+      <button class="btn ghost" onclick="closeWidgetPicker()">Cancel</button>
     </div>
   </div>
 </div>
@@ -838,10 +838,10 @@ function pushMonitor(){
       serial:p.serial||"",apikey:p.apikey||""}))};
   fetch(api("/api/monitor"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}).catch(()=>{});
 }
-const STATE_LABELS={printing:"Impression",paused:"En pause",complete:"Terminé",completed:"Terminé",
-  standby:"Prêt",idle:"Prêt",ready:"Prêt",operational:"Prêt",busy:"Occupé",heating:"Chauffe",
-  pausing:"Pause…",cancel:"Annulé",cancelled:"Annulé",stopped:"Arrêté",
-  camera:"Caméra seule",error:"Erreur",offline:"Hors ligne",unknown:"—"};
+const STATE_LABELS={printing:"Printing",paused:"Paused",complete:"Done",completed:"Done",
+  standby:"Ready",idle:"Ready",ready:"Ready",operational:"Ready",busy:"Busy",heating:"Heating",
+  pausing:"Pausing...",cancel:"Cancelled",cancelled:"Cancelled",stopped:"Stopped",
+  camera:"Camera seule",error:"Error",offline:"Offline",unknown:"—"};
 
 function fmtTime(s){if(s==null)return"—";s=Math.round(s);const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);
   return h>0?h+"h"+String(m).padStart(2,"0"):m+" min";}
@@ -870,7 +870,7 @@ async function loadPrinters(){
   Object.keys(cards).forEach(id=>{if(!list.find(p=>p.id===id)){cards[id].remove();delete cards[id];delete charts[id];}});
   if(!list.length){
     if(!grid.querySelector(".empty-state"))
-      grid.innerHTML='<div class="empty-state"><div class="big">Imprimante</div><h3>Aucune imprimante</h3><p>Clique sur « + Ajouter une imprimante » pour démarrer.</p></div>';
+      grid.innerHTML='<div class="empty-state"><div class="big">Printer</div><h3>No printers</h3><p>Click + Add to start.</p></div>';
     return;
   }
   const es=grid.querySelector(".empty-state"); if(es)es.remove();
@@ -883,23 +883,23 @@ function createCard(p,i){
   el.className="card"; el.style.animationDelay=(i*0.08)+"s";
   el.innerHTML=`
     <div class="card-head">
-      <span class="title"><span class="drag-handle" title="Glisser pour réordonner">⠿</span> ${esc(p.name)} <span class="type-chip">${p.type||"?"}</span></span>
+      <span class="title"><span class="drag-handle" title="Drag to reorder">⠿</span> ${esc(p.name)} <span class="type-chip">${p.type||"?"}</span></span>
       <span style="display:flex;align-items:center;gap:6px">
         <span class="pill" id="pill-${p.id}"><span class="led"></span><span class="st">…</span></span>
         <span class="cfg-wrap">
           <button class="card-cfg" title="Personnaliser la carte" onclick="toggleCardMenu('${p.id}')">⋯</button>
           <div class="cfg-menu" id="cfg-${p.id}">
             <label class="chk"><input type="checkbox" data-w="webcam" onchange="setWidget('${p.id}','webcam',this.checked)"> Webcam</label>
-            <label class="chk"><input type="checkbox" data-w="chart" onchange="setWidget('${p.id}','chart',this.checked)"> Graphe temp.</label>
-            ${p.type==="moonraker"?`<label class="chk"><input type="checkbox" data-w="controls" onchange="setWidget('${p.id}','controls',this.checked)"> Contrôles</label>
-            <label class="chk"><input type="checkbox" data-w="health" onchange="setWidget('${p.id}','health',this.checked)"> Santé machine</label>`:""}
+            <label class="chk"><input type="checkbox" data-w="chart" onchange="setWidget('${p.id}','chart',this.checked)"> Chart temp.</label>
+            ${p.type==="moonraker"?`<label class="chk"><input type="checkbox" data-w="controls" onchange="setWidget('${p.id}','controls',this.checked)"> Controls</label>
+            <label class="chk"><input type="checkbox" data-w="health" onchange="setWidget('${p.id}','health',this.checked)"> Machine Health</label>`:""}
           </div>
         </span>
       </span>
     </div>
     <div class="webcam" id="wc-${p.id}">
       <img id="cam-${p.id}" alt="" onload="document.getElementById('scan-${p.id}').style.display=''"
-        onerror="this.style.display='none';const w=document.getElementById('wc-${p.id}');w.querySelector('.scan').style.display='none';if(!w.dataset.msg){w.dataset.msg=1;w.insertAdjacentText('beforeend','Pas de flux webcam')}">
+        onerror="this.style.display='none';const w=document.getElementById('wc-${p.id}');w.querySelector('.scan').style.display='none';if(!w.dataset.msg){w.dataset.msg=1;w.insertAdjacentText('beforeend','No webcam stream')}">
       <div class="scan" id="scan-${p.id}" style="display:none"></div>
     </div>
     <div class="body">
@@ -911,16 +911,16 @@ function createCard(p,i){
           <div class="pct" id="pct-${p.id}">0%</div>
         </div>
         <div class="prog-info">
-          <div class="filename empty" id="file-${p.id}">En attente…</div>
-          <div class="eta">Temps restant : <b id="eta-${p.id}">—</b></div>
+          <div class="filename empty" id="file-${p.id}">Waiting...</div>
+          <div class="eta">Time left: <b id="eta-${p.id}">—</b></div>
         </div>
       </div>
       <div class="temps">
-        <div class="temp extruder"><div class="lbl"><span class="ico"></span>Buse</div>
+        <div class="temp extruder"><div class="lbl"><span class="ico"></span>Nozzle</div>
           <div class="val num" id="te-${p.id}">—</div><div class="tgt" id="tge-${p.id}"></div><div class="heat" id="he-${p.id}"></div></div>
-        <div class="temp bed"><div class="lbl"><span class="ico"></span>Plateau</div>
+        <div class="temp bed"><div class="lbl"><span class="ico"></span>Bed</div>
           <div class="val num" id="tb-${p.id}">—</div><div class="tgt" id="tgb-${p.id}"></div><div class="heat" id="hb-${p.id}"></div></div>
-        <div class="temp chamber" id="cb-${p.id}" style="display:none"><div class="lbl"><span class="ico"></span>Chambre</div>
+        <div class="temp chamber" id="cb-${p.id}" style="display:none"><div class="lbl"><span class="ico"></span>Chamber</div>
           <div class="val num" id="tc-${p.id}">—</div><div class="tgt" id="tgc-${p.id}"></div><div class="heat" id="hc-${p.id}"></div></div>
       </div>
       ${p.type==="moonraker"?`
@@ -937,26 +937,26 @@ function createCard(p,i){
       ${p.type==="moonraker"?`
       <div class="controls">
         <button class="ctrl" id="pause-${p.id}" onclick="control('${p.id}','pause')">Pause</button>
-        <button class="ctrl" id="resume-${p.id}" onclick="control('${p.id}','resume')" style="display:none">Reprendre</button>
-        <button class="ctrl danger" id="cancel-${p.id}" onclick="control('${p.id}','cancel',null,true)">Annuler</button>
+        <button class="ctrl" id="resume-${p.id}" onclick="control('${p.id}','resume')" style="display:none">Resume</button>
+        <button class="ctrl danger" id="cancel-${p.id}" onclick="control('${p.id}','cancel',null,true)">Cancel</button>
       </div>
       <div class="controls">
         <select class="ctrl-select" id="ph-${p.id}" onchange="if(this.value){control('${p.id}','preheat',this.value);this.value=''}">
-          <option value="">Préchauffe...</option><option>PLA</option><option>PETG</option><option>ABS</option>
+          <option value="">Preheat...</option><option>PLA</option><option>PETG</option><option>ABS</option>
         </select>
-        <button class="ctrl" onclick="control('${p.id}','cooldown')">Refroidir</button>
-        <button class="ctrl estop danger" onclick="control('${p.id}','estop',null,true)">Arrêt</button>
+        <button class="ctrl" onclick="control('${p.id}','cooldown')">Cooldown</button>
+        <button class="ctrl estop danger" onclick="control('${p.id}','estop',null,true)">Stop</button>
       </div>
       <div class="controls">
-        <button class="ctrl" onclick="control('${p.id}','light_on')">Lumière ON</button>
-        <button class="ctrl" onclick="control('${p.id}','light_off')">Lumière OFF</button>
+        <button class="ctrl" onclick="control('${p.id}','light_on')">Light on</button>
+        <button class="ctrl" onclick="control('${p.id}','light_off')">Light off</button>
       </div>`:""}
       <div class="controls">
-        <button class="ctrl" onclick="reloadCamera('${p.id}')">Caméra ↻</button>
-        <button class="ctrl" onclick="openCamera('${p.id}')">Caméra ouvrir</button>
+        <button class="ctrl" onclick="reloadCamera('${p.id}')">Camera ↻</button>
+        <button class="ctrl" onclick="openCamera('${p.id}')">Camera ouvrir</button>
       </div>
     </div>
-    <div class="card-foot"><button onclick="removePrinter('${p.id}','${esc(p.name)}')">x Supprimer</button></div>`;
+    <div class="card-foot"><button onclick="removePrinter('${p.id}','${esc(p.name)}')">x Delete</button></div>`;
   document.getElementById("grid").appendChild(el);
   cards[p.id]=el;
   setupDnd(el,p.id);
@@ -967,7 +967,7 @@ function createCard(p,i){
   charts[p.id]=new Chart(el.querySelector(`#chart-${p.id}`),{
     type:"line",
     data:{labels:[],datasets:[
-      mkDs("Buse","#ff6b6b"),mkDs("Plateau","#ff9f43"),mkDs("Chambre","#ffd36b",true)]},
+      mkDs("Nozzle","#ff6b6b"),mkDs("Bed","#ff9f43"),mkDs("Chamber","#ffd36b",true)]},
     options:{responsive:true,maintainAspectRatio:false,animation:{duration:400},
       plugins:{legend:{labels:{color:"#828aa0",boxWidth:9,font:{size:10,family:"Space Grotesk"},usePointStyle:true,pointStyle:"circle"}}},
       scales:{x:{display:false},y:{ticks:{color:"#828aa0",font:{size:10}},grid:{color:"rgba(255,255,255,.05)"}}}}
@@ -979,25 +979,25 @@ function setCardWebcam(p){
   if(!img||!box)return;
   if(!url){
     img.style.display="none";
-    if(!box.dataset.msg){box.dataset.msg=1;box.insertAdjacentText("beforeend","Pas de flux webcam");}
+    if(!box.dataset.msg){box.dataset.msg=1;box.insertAdjacentText("beforeend","No webcam stream");}
     return;
   }
   img.src=api("/api/webcam?url="+encodeURIComponent(url));
 }
 
 function reloadCamera(id){
-  const p=printersById[id]; if(!p){toast("Caméra introuvable",true);return;}
+  const p=printersById[id]; if(!p){toast("Camera introuvable",true);return;}
   const img=document.getElementById("cam-"+id),box=document.getElementById("wc-"+id);
   const url=webcamUrl(p);
-  if(!url){toast("Aucune URL caméra configurée",true);return;}
+  if(!url){toast("No camera URL set",true);return;}
   if(box){box.dataset.msg=""; [...box.childNodes].forEach(n=>{if(n.nodeType===3)n.remove();});}
   if(img){img.style.display="block"; img.src=api("/api/webcam?url="+encodeURIComponent(url)+"&t="+Date.now());}
 }
 
 function openCamera(id){
-  const p=printersById[id]; if(!p){toast("Caméra introuvable",true);return;}
+  const p=printersById[id]; if(!p){toast("Camera introuvable",true);return;}
   const url=webcamUrl(p);
-  if(!url){toast("Aucune URL caméra configurée",true);return;}
+  if(!url){toast("No camera URL set",true);return;}
   window.open(url,"_blank","noopener");
 }
 
@@ -1024,12 +1024,12 @@ function updateCard(id,s){
   const pill=document.getElementById("pill-"+id); if(!pill)return;
   const st=s.error?"error":(s.state||"offline");
   pill.className="pill "+(!s.online?"":(st==="printing"?"printing":(st==="error"?"error":"online")));
-  pill.querySelector(".st").textContent=s.error?"Erreur":(STATE_LABELS[st]||st);
+  pill.querySelector(".st").textContent=s.error?"Error":(STATE_LABELS[st]||st);
   updateControls(id,st,s.online);
 
   const f=document.getElementById("file-"+id);
   if(s.filename){f.textContent=s.filename;f.className="filename";}
-  else{f.textContent=s.error||"En attente…";f.className="filename empty";}
+  else{f.textContent=s.error||"Waiting...";f.className="filename empty";}
 
   const pct=Math.round((s.progress||0)*100);
   document.getElementById("pct-"+id).textContent=pct+"%";
@@ -1060,7 +1060,7 @@ function setTemp(id,k,o){
   const ve=document.getElementById(v+id);
   if(!o){ve.textContent="—";document.getElementById(g+id).textContent="";return;}
   animNum(ve,o.actual);
-  document.getElementById(g+id).textContent=o.target>0?"cible "+o.target+"°":"";
+  document.getElementById(g+id).textContent=o.target>0?"target "+o.target+"°":"";
   // barre de chauffe : ratio actuel/cible
   const ratio=o.target>0?Math.min(1,o.actual/o.target):(o.actual>40?Math.min(1,o.actual/250):0);
   document.getElementById(ht+id).style.transform="scaleX("+ratio+")";
@@ -1076,24 +1076,24 @@ async function addPrinter(){
   const host=val("f-host").trim(), name=val("f-name").trim(),
         webcam=val("f-webcam").trim(), serial=val("f-serial").trim(), apikey=val("f-apikey").trim();
   if(!host){err.textContent="Entre une adresse IP.";return;}
-  btn.disabled=true;btn.innerHTML='<span class="spin"></span>Détection…';
+  btn.disabled=true;btn.innerHTML='<span class="spin"></span>Detecting...';
   try{
     // Détection via l'agent local (probe Moonraker/OctoPrint)
     const r=await fetch(api("/api/detect?host="+encodeURIComponent(host)+(apikey?"&apikey="+encodeURIComponent(apikey):"")));
     const d=await r.json();
-    if(!r.ok){err.textContent=d.error||"Aucune imprimante détectée. L'agent local tourne-t-il ?";return;}
+    if(!r.ok){err.textContent=d.error||"No printer found. Is the local agent running?";return;}
     const printer={id:"p"+Date.now().toString(36)+Math.random().toString(36).slice(2,5),
       name:name||d.host,host:d.host,type:d.type,serial,apikey,webcam:webcam||d.webcam||""};
     const list=LS.printers(); list.push(printer); LS.setPrinters(list);
     pushMonitor();
     closeModal();await loadPrinters();
-  }catch(e){err.textContent="Agent injoignable. Lance l'agent local (python app.py).";}
-  finally{btn.disabled=false;btn.innerHTML="Détecter &amp; ajouter";}
+  }catch(e){err.textContent="Agent unreachable. Start the local agent with python app.py.";}
+  finally{btn.disabled=false;btn.innerHTML="Detect and add";}
 }
 function val(id){return document.getElementById(id).value;}
 
 async function removePrinter(id,name){
-  if(!confirm("Supprimer « "+name+" » ?"))return;
+  if(!confirm("Delete « "+name+" » ?"))return;
   LS.setPrinters(LS.printers().filter(p=>p.id!==id));
   pushMonitor();
   await loadPrinters();
@@ -1132,13 +1132,13 @@ function fmtDur(s){if(!s)return"—";s=Math.round(s);const h=Math.floor(s/3600),
 function fmtFil(mm){if(!mm)return"0 m";const m=mm/1000;return m>=1000?(m/1000).toFixed(2)+" km":Math.round(m)+" m";}
 function fmtDate(ts){if(!ts)return"—";const d=new Date(ts*1000);
   return d.toLocaleDateString("fr-FR",{day:"2-digit",month:"short"})+" "+d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});}
-const ST_LBL={completed:"Terminé",cancelled:"Annulé",error:"Erreur",in_progress:"En cours",
-  interrupted:"Interrompu",klippy_shutdown:"Arrêt Klipper",klippy_disconnect:"Déconnecté"};
+const ST_LBL={completed:"Done",cancelled:"Cancelled",error:"Error",in_progress:"Running",
+  interrupted:"Interrupted",klippy_shutdown:"Stop Klipper",klippy_disconnect:"Disconnected"};
 
 async function loadStats(){
   const printers=LS.printers();
   const box=document.getElementById("stats");
-  if(!printers.length){box.innerHTML='<div class="stat-empty">Aucune imprimante à analyser.</div>';return;}
+  if(!printers.length){box.innerHTML='<div class="stat-empty">No printers to analyze.</div>';return;}
   box.innerHTML="";
   for(const p of printers){
     const block=document.createElement("div");block.className="stat-block";
@@ -1149,34 +1149,34 @@ async function loadStats(){
       </div>
       <div class="kpis" id="kpi-${p.id}"></div>
       <div class="panels">
-        <div class="panel"><h4>Activité (30 derniers jours)</h4><div class="activity-box"><canvas id="act-${p.id}"></canvas></div></div>
-        <div class="panel"><h4>Filament par type</h4><div class="ftype" id="ft-${p.id}"></div>
-          <div class="cost"><label>Prix €/kg</label><input type="number" id="price-${p.id}" value="25" min="0" oninput="recost('${p.id}')">
+        <div class="panel"><h4>Activity (30 days)</h4><div class="activity-box"><canvas id="act-${p.id}"></canvas></div></div>
+        <div class="panel"><h4>Filament by type</h4><div class="ftype" id="ft-${p.id}"></div>
+          <div class="cost"><label>Price EUR/kg</label><input type="number" id="price-${p.id}" value="25" min="0" oninput="recost('${p.id}')">
             <span class="total" id="cost-${p.id}">—</span></div></div>
       </div>
-      <div class="jobs-title">Impressions récentes</div>
-      <div class="jobs" id="jobs-${p.id}"><div class="stat-empty">Chargement…</div></div>`;
+      <div class="jobs-title">Recent Prints</div>
+      <div class="jobs" id="jobs-${p.id}"><div class="stat-empty">Loading...</div></div>`;
     box.appendChild(block);
     try{renderStats(p,await (await fetch(api("/api/stats?"+pq(p)))).json());}
-    catch(e){document.getElementById("jobs-"+p.id).innerHTML='<div class="stat-empty">Erreur de chargement.</div>';}
+    catch(e){document.getElementById("jobs-"+p.id).innerHTML='<div class="stat-empty">Error de chargement.</div>';}
   }
 }
 
 function renderStats(p,s){
   const t=s.totals||{};
   if(!s.supported){
-    document.getElementById("kpi-"+p.id).innerHTML='<div class="stat-empty">Statistiques non disponibles pour ce protocole.</div>';
+    document.getElementById("kpi-"+p.id).innerHTML='<div class="stat-empty">Stats non disponibles pour ce protocole.</div>';
     document.getElementById("jobs-"+p.id).innerHTML="";return;
   }
   const rate=s.success_rate,C=2*Math.PI*24,off=rate==null?C:C*(1-rate/100);
   document.getElementById("kpi-"+p.id).innerHTML=`
-    <div class="kpi k-jobs"><div class="klbl">Impressions</div><div class="kval">${t.total_jobs||0}</div><div class="ksub">total cumulé</div></div>
-    <div class="kpi k-time"><div class="klbl">Temps d'impression</div><div class="kval">${fmtDur(t.total_time)}</div><div class="ksub">toutes impressions</div></div>
-    <div class="kpi k-fil"><div class="klbl">Filament</div><div class="kval">${fmtFil(t.total_filament)}</div><div class="ksub">consommé au total</div></div>
+    <div class="kpi k-jobs"><div class="klbl">Prints</div><div class="kval">${t.total_jobs||0}</div><div class="ksub">total</div></div>
+    <div class="kpi k-time"><div class="klbl">Print Time</div><div class="kval">${fmtDur(t.total_time)}</div><div class="ksub">all prints</div></div>
+    <div class="kpi k-fil"><div class="klbl">Filament</div><div class="kval">${fmtFil(t.total_filament)}</div><div class="ksub">used</div></div>
     <div class="kpi k-rate">
       <div class="ring-rate"><svg width="54" height="54"><circle class="t" cx="27" cy="27" r="24"/><circle class="f" cx="27" cy="27" r="24" stroke-dasharray="${C}" stroke-dashoffset="${C}"/></svg></div>
-      <div class="klbl">Taux de réussite</div><div class="kval">${rate==null?"—":rate+"%"}</div><div class="ksub">25 derniers jobs</div></div>
-    <div class="kpi k-long"><div class="klbl">Plus longue</div><div class="kval">${fmtDur(t.longest_print)}</div><div class="ksub">record</div></div>`;
+      <div class="klbl">Success Rate</div><div class="kval">${rate==null?"—":rate+"%"}</div><div class="ksub">last 25 jobs</div></div>
+    <div class="kpi k-long"><div class="klbl">Longest</div><div class="kval">${fmtDur(t.longest_print)}</div><div class="ksub">record</div></div>`;
   requestAnimationFrame(()=>{const f=document.querySelector("#kpi-"+p.id+" .ring-rate .f");if(f)f.style.strokeDashoffset=off;});
 
   renderActivity(p,s.activity||[]);
@@ -1184,7 +1184,7 @@ function renderStats(p,s){
 
   const jb=document.getElementById("jobs-"+p.id);
   statJobs[p.id]=s.jobs||[];
-  if(!s.jobs.length){jb.innerHTML='<div class="stat-empty">Aucune impression enregistrée.</div>';return;}
+  if(!s.jobs.length){jb.innerHTML='<div class="stat-empty">No prints saved.</div>';return;}
   jb.innerHTML="";
   s.jobs.forEach((j,i)=>{
     const el=document.createElement("div");el.className="job";el.style.animationDelay=(i*0.04)+"s";
@@ -1193,7 +1193,7 @@ function renderStats(p,s){
       ?`<img class="thumb" src="${api("/api/thumb?"+pq(p)+"&path="+encodeURIComponent(j.thumb))}" onerror="this.style.visibility='hidden'">`
       :`<div class="thumb"></div>`;
     const meta=["<span>"+fmtDate(j.end_time)+"</span>"];
-    if(j.duration)meta.push("<span>Temps "+fmtDur(j.duration)+"</span>");
+    if(j.duration)meta.push("<span>Time "+fmtDur(j.duration)+"</span>");
     if(j.weight)meta.push("<span>"+j.weight.toFixed(1)+" g</span>");
     if(j.filament_type)meta.push("<span>"+esc(j.filament_type)+"</span>");
     el.innerHTML=`${thumb}<div class="jmain"><div class="jname">${esc(j.filename||"—")}</div>
@@ -1203,29 +1203,29 @@ function renderStats(p,s){
   });
 }
 
-// Graphe d'activite (barres : impressions par jour)
+// Chart d'activite (barres : impressions par jour)
 function renderActivity(p,act){
   const ctx=document.getElementById("act-"+p.id); if(!ctx)return;
   if(statCharts[p.id])statCharts[p.id].destroy();
   const labels=act.map(a=>{const d=new Date(a.date*1000);return d.toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"});});
   statCharts[p.id]=new Chart(ctx,{type:"bar",
-    data:{labels,datasets:[{label:"Impressions",data:act.map(a=>a.count),
+    data:{labels,datasets:[{label:"Prints",data:act.map(a=>a.count),
       backgroundColor:document.body.classList.contains("skin-archive")?"#1A1A1A":"rgba(108,140,255,.6)",
       borderRadius:document.body.classList.contains("skin-archive")?0:4,maxBarThickness:14}]},
     options:{responsive:true,maintainAspectRatio:false,animation:{duration:600},
-      plugins:{legend:{display:false},tooltip:{callbacks:{afterLabel:c=>"dont "+act[c.dataIndex].completed+" réussies"}}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{afterLabel:c=>"including "+act[c.dataIndex].completed+" completed"}}},
       scales:{x:{ticks:{color:"#828aa0",font:{size:9},maxRotation:0,autoSkip:true,maxTicksLimit:8},grid:{display:false}},
         y:{beginAtZero:true,ticks:{color:"#828aa0",font:{size:9},precision:0},grid:{color:"rgba(128,128,128,.12)"}}}}});
 }
 
 // Repartition filament par type + cout
-const FT_COLORS={PLA:"#34e0a1",PETG:"#6c8cff",ABS:"#ff9f43",ASA:"#ff6b6b",TPU:"#a06bff",PA:"#ffd36b",PC:"#00d4ff",Inconnu:"#828aa0"};
+const FT_COLORS={PLA:"#34e0a1",PETG:"#6c8cff",ABS:"#ff9f43",ASA:"#ff6b6b",TPU:"#a06bff",PA:"#ffd36b",PC:"#00d4ff",Unknown:"#828aa0"};
 function ftColor(t){return FT_COLORS[t]||FT_COLORS[(t||"").toUpperCase()]||"#828aa0";}
 function renderFilament(p,byType){
   const box=document.getElementById("ft-"+p.id); if(!box)return;
   statByType[p.id]=byType;
   const entries=Object.entries(byType).sort((a,b)=>b[1]-a[1]);
-  if(!entries.length){box.innerHTML='<div class="stat-empty" style="padding:14px">Aucune donnée.</div>';recost(p.id);return;}
+  if(!entries.length){box.innerHTML='<div class="stat-empty" style="padding:14px">No data.</div>';recost(p.id);return;}
   const max=entries[0][1];
   box.innerHTML=entries.map(([t,g])=>{
     const kg=g/1000, disp=kg>=1?kg.toFixed(2)+" kg":Math.round(g)+" g";
@@ -1244,7 +1244,7 @@ function recost(id){
 // Modale detail d'un job
 function openJob(p,i){
   const j=(statJobs[p.id]||[])[i]; if(!j)return;
-  document.getElementById("jd-name").textContent=j.filename||"Impression";
+  document.getElementById("jd-name").textContent=j.filename||"Printing";
   const sd=document.getElementById("jd-status");
   sd.innerHTML=`<span class="jbadge ${j.status}">${ST_LBL[j.status]||j.status}</span> &nbsp; ${fmtDate(j.end_time)}`;
   const th=document.getElementById("jd-thumb");
@@ -1252,22 +1252,22 @@ function openJob(p,i){
   if(!j.thumb)th.style.visibility="hidden";
   const m=j.meta||{}, rows=[];
   const add=(k,v)=>{if(v!==undefined&&v!==null&&v!=="")rows.push(`<div class="jd-row"><span>${k}</span><b>${v}</b></div>`);};
-  add("Durée",fmtDur(j.duration));
-  if(m.est_time)add("Estimée (slicer)",fmtDur(m.est_time));
+  add("Duration",fmtDur(j.duration));
+  if(m.est_time)add("Estimated by slicer",fmtDur(m.est_time));
   add("Filament",j.weight?j.weight.toFixed(1)+" g":null);
-  if(m.length)add("Longueur",(m.length/1000).toFixed(2)+" m");
+  if(m.length)add("Length",(m.length/1000).toFixed(2)+" m");
   add("Type",j.filament_type);
-  if(m.layers)add("Couches",m.layers);
-  if(m.height)add("Hauteur",m.height+" mm");
-  if(m.layer_height)add("Épaisseur couche",m.layer_height+" mm");
-  if(m.nozzle)add("Buse",m.nozzle+" mm");
+  if(m.layers)add("Layers",m.layers);
+  if(m.height)add("Height",m.height+" mm");
+  if(m.layer_height)add("Layer height",m.layer_height+" mm");
+  if(m.nozzle)add("Nozzle",m.nozzle+" mm");
   if(m.slicer)add("Slicer",m.slicer+(m.slicer_version?" "+m.slicer_version:""));
-  document.getElementById("jd-rows").innerHTML=rows.join("")||'<div class="stat-empty">Pas de métadonnées.</div>';
+  document.getElementById("jd-rows").innerHTML=rows.join("")||'<div class="stat-empty">No metadata.</div>';
   document.getElementById("jd-overlay").classList.add("show");
 }
 function closeJob(){document.getElementById("jd-overlay").classList.remove("show");}
 
-// ---- Contrôles imprimante ----
+// ---- Controls imprimante ----
 function updateControls(id,state,online){
   const pause=document.getElementById("pause-"+id);
   if(!pause)return; // pas de contrôles (OctoPrint)
@@ -1281,21 +1281,21 @@ function updateControls(id,state,online){
 }
 
 async function control(id,action,material,confirmNeeded){
-  const verbs={cancel:"annuler l'impression en cours",estop:"déclencher l'ARRÊT D'URGENCE"};
-  if(confirmNeeded && !confirm("Confirmer : "+verbs[action]+" ?"))return;
+  const verbs={cancel:"cancel the current print",estop:"trigger emergency stop"};
+  if(confirmNeeded && !confirm("Confirm: "+verbs[action]+"?"))return;
   const p=printersById[id]; if(!p)return;
   try{
     const r=await fetch(api("/api/control?"+pq(p)),{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({action,material})});
     const d=await r.json();
-    if(!r.ok){toast(d.error||"Échec de la commande",true);return;}
-    const msg={pause:"Mise en pause",resume:"Reprise",cancel:"Impression annulée",
-      estop:"Arrêt d'urgence envoyé",cooldown:"Chauffes coupées",
-      light_on:"Lumière allumée",light_off:"Lumière éteinte",
-      preheat:"Préchauffe "+(material||"")};
-    toast(msg[action]||"Commande envoyée");
+    if(!r.ok){toast(d.error||"Command failed",true);return;}
+    const msg={pause:"Paused",resume:"Resumed",cancel:"Print cancelled",
+      estop:"Emergency stop sent",cooldown:"Heaters off",
+      light_on:"Light on",light_off:"Light off",
+      preheat:"Preheat "+(material||"")};
+    toast(msg[action]||"Command sent");
     setTimeout(poll,600);
-  }catch(e){toast("Erreur réseau",true);}
+  }catch(e){toast("Network error",true);}
 }
 
 function toast(msg,isErr){
@@ -1304,7 +1304,7 @@ function toast(msg,isErr){
   clearTimeout(t._t);t._t=setTimeout(()=>{t.className="toast"+(isErr?" err":"");},2900);
 }
 
-// ---- Santé machine ----
+// ---- Machine Health ----
 function updateHealth(id,sys,sensors){
   const cpu=document.getElementById("cpu-"+id); if(!cpu)return;
   cpu.textContent=sys.cpu!=null?sys.cpu+" %":"—";
@@ -1376,7 +1376,7 @@ function applyOrder(){
   seq.forEach(id=>grid.appendChild(cards[id]));
 }
 
-// ---- Apparence ----
+// ---- Look ----
 function applyAppearance(a){
   if(!a)return;
   if(a.accent)document.documentElement.style.setProperty("--accent",a.accent);
@@ -1394,7 +1394,7 @@ function applyAppearance(a){
   const b=document.body;
   b.classList.remove("anim-full","anim-reduced","anim-none","bg-color","bg-subtle","bg-flat",
     "font-rounded","font-system","font-mono-ui","radius-normal","radius-sharp","radius-round","dense");
-  // Skin (identité visuelle) : Archive (Swiss Style) ou Néon (original)
+  // Skin (identité visuelle) : Archive (Swiss Style) ou Neon
   const skin=a.skin||localStorage.getItem("pw-skin")||"archive";
   b.classList.toggle("skin-archive",skin==="archive");
   localStorage.setItem("pw-skin",skin);
@@ -1483,15 +1483,15 @@ function saveSettings(){
   const newAgent=document.getElementById("set-agent").value.trim().replace(/\/$/,"");
   const agentChanged=newAgent!==(localStorage.getItem("pw-agent")||"");
   if(newAgent)localStorage.setItem("pw-agent",newAgent); else localStorage.removeItem("pw-agent");
-  // Thème : préférence locale
+  // Theme : préférence locale
   const theme=document.getElementById("set-theme").value;
   localStorage.setItem("pw-theme",theme); applyTheme(theme);
   // Pousse la config d'alertes à l'agent (pour Discord)
   pushMonitor();
   const skinChanged=(localStorage.getItem("pw-skin")||"archive")!==appearance.skin;
   applyAppearance(appearance);
-  if(skinChanged||agentChanged){toast("Réglages appliqués — rechargement…");setTimeout(()=>location.reload(),500);return;}
-  toast("Réglages enregistrés");closeSettings();
+  if(skinChanged||agentChanged){toast("Settings applied. Reloading...");setTimeout(()=>location.reload(),500);return;}
+  toast("Settings saved");closeSettings();
 }
 async function testWebhook(){
   const err=document.getElementById("set-err");err.textContent="";
@@ -1499,9 +1499,9 @@ async function testWebhook(){
     const r=await fetch(api("/api/monitor/test"),{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({webhook:document.getElementById("set-webhook").value})});
     const d=await r.json();
-    if(r.ok)toast("Discord Message test envoyé sur Discord");
-    else err.textContent=d.error||"Échec de l'envoi";
-  }catch(e){err.textContent="Agent injoignable";}
+    if(r.ok)toast("Discord test message sent");
+    else err.textContent=d.error||"Send failed";
+  }catch(e){err.textContent="Agent unreachable";}
 }
 
 // =====================================================
@@ -1513,12 +1513,12 @@ const panelCharts={}, panelHistory={};  // widgetId -> Chart / history arrays
 
 // ---- Constantes par type ----
 const WT_DEF={
-  progress:{colSpan:4,rowSpan:3,label:"Progression"},
-  temps:   {colSpan:4,rowSpan:2,label:"Températures"},
-  health:  {colSpan:4,rowSpan:3,label:"Santé machine"},
-  chart:   {colSpan:6,rowSpan:3,label:"Graphe"},
+  progress:{colSpan:4,rowSpan:3,label:"Progress"},
+  temps:   {colSpan:4,rowSpan:2,label:"Temperatures"},
+  health:  {colSpan:4,rowSpan:3,label:"Machine Health"},
+  chart:   {colSpan:6,rowSpan:3,label:"Chart"},
   webcam:  {colSpan:6,rowSpan:4,label:"Webcam"},
-  controls:{colSpan:4,rowSpan:2,label:"Contrôles"},
+  controls:{colSpan:4,rowSpan:2,label:"Controls"},
 };
 
 // ---- Calcul de style positionnel ----
@@ -1587,12 +1587,12 @@ function createPW(w){
   const printer=allPrinters.find(p=>p.id===w.printer)||{name:"?",type:"?"};
   el.innerHTML=`
     <div class="pw-header">
-      ${editMode?`<span class="pw-drag-handle" title="Déplacer">⠿</span>`:""}
+      ${editMode?`<span class="pw-drag-handle" title="Move">⠿</span>`:""}
       <span class="pw-title">${WT_DEF[w.type]?.label||w.type} — ${esc(printer.name)}</span>
       ${editMode?`<button class="pw-del" onclick="removeWidget('${w.id}')">x</button>`:""}
     </div>
     <div class="pw-body${w.type==="webcam"?" no-pad":""}" id="pwb-${w.id}"></div>
-    ${editMode?`<div class="pw-resize" title="Redimensionner">
+    ${editMode?`<div class="pw-resize" title="Resize">
       <svg width="12" height="12"><polyline points="4,12 12,12 12,4" fill="none" stroke="currentColor" stroke-width="2"/></svg>
     </div>`:""}`;
 
@@ -1616,13 +1616,13 @@ function buildWidgetBody(w,body){
             stroke-dasharray="${2*Math.PI*30}" stroke-dashoffset="${2*Math.PI*30}"/></svg>
         <div class="pw-pinfo"><div class="pw-pct" id="pwpct-${w.id}">0%</div>
           <div class="pw-fname" id="pwfn-${w.id}">—</div>
-          <div class="pw-eta-s" id="pweta-${w.id}">restant : —</div></div></div>`;
+          <div class="pw-eta-s" id="pweta-${w.id}">left: --</div></div></div>`;
       break;
     case"temps":
       body.innerHTML=`<div class="pw-temps-grid">
-        <div class="pw-temp ext"><div class="lbl">Buse</div><div class="val" id="pwte-${w.id}">—</div><div class="tgt" id="pwtge-${w.id}"></div></div>
-        <div class="pw-temp bed"><div class="lbl">Plateau</div><div class="val" id="pwtb-${w.id}">—</div><div class="tgt" id="pwtgb-${w.id}"></div></div>
-        <div class="pw-temp cham" id="pwtcwrap-${w.id}"><div class="lbl">Chambre</div><div class="val" id="pwtc-${w.id}">—</div><div class="tgt" id="pwtgc-${w.id}"></div></div></div>`;
+        <div class="pw-temp ext"><div class="lbl">Nozzle</div><div class="val" id="pwte-${w.id}">—</div><div class="tgt" id="pwtge-${w.id}"></div></div>
+        <div class="pw-temp bed"><div class="lbl">Bed</div><div class="val" id="pwtb-${w.id}">—</div><div class="tgt" id="pwtgb-${w.id}"></div></div>
+        <div class="pw-temp cham" id="pwtcwrap-${w.id}"><div class="lbl">Chamber</div><div class="val" id="pwtc-${w.id}">—</div><div class="tgt" id="pwtgc-${w.id}"></div></div></div>`;
       break;
     case"health":
       body.innerHTML=`<div class="pw-health-grid">
@@ -1639,7 +1639,7 @@ function buildWidgetBody(w,body){
       requestAnimationFrame(()=>{
         const c=body.querySelector("canvas");
         if(c) panelCharts[w.id]=new Chart(c,{type:"line",
-          data:{labels:[],datasets:[mkDs("Buse","#ff6b6b"),mkDs("Plateau","#ff9f43"),mkDs("Chambre","#ffd36b",true)]},
+          data:{labels:[],datasets:[mkDs("Nozzle","#ff6b6b"),mkDs("Bed","#ff9f43"),mkDs("Chamber","#ffd36b",true)]},
           options:{responsive:true,maintainAspectRatio:false,animation:{duration:300},
             plugins:{legend:{labels:{color:"#828aa0",boxWidth:8,font:{size:9}}}},
             scales:{x:{display:false},y:{ticks:{color:"#828aa0",font:{size:9}},grid:{color:"rgba(255,255,255,.05)"}}}}});
@@ -1648,19 +1648,19 @@ function buildWidgetBody(w,body){
     case"webcam":
       {const wu=webcamUrl(printersById[w.printer]||{});
       body.innerHTML=wu
-        ?`<div class="pw-webcam"><img src="${api("/api/webcam?url="+encodeURIComponent(wu))}" onerror="this.style.display='none';this.nextSibling.style.display=''"><span style="display:none">Pas de flux webcam</span></div>`
-        :`<div class="pw-webcam"><span>Pas de flux webcam</span></div>`;}
+        ?`<div class="pw-webcam"><img src="${api("/api/webcam?url="+encodeURIComponent(wu))}" onerror="this.style.display='none';this.nextSibling.style.display=''"><span style="display:none">No webcam stream</span></div>`
+        :`<div class="pw-webcam"><span>No webcam stream</span></div>`;}
       break;
     case"controls":
       body.innerHTML=`<div class="pw-ctrl-grid">
         <button class="ctrl" onclick="control('${w.printer}','pause')">Pause</button>
-        <button class="ctrl" onclick="control('${w.printer}','resume')">Reprendre</button>
-        <button class="ctrl danger" onclick="control('${w.printer}','cancel',null,true)">Annuler</button>
+        <button class="ctrl" onclick="control('${w.printer}','resume')">Resume</button>
+        <button class="ctrl danger" onclick="control('${w.printer}','cancel',null,true)">Cancel</button>
         <select class="ctrl-select" style="flex:1" onchange="if(this.value){control('${w.printer}','preheat',this.value);this.value=''}">
-          <option value="">Préchauffe...</option><option>PLA</option><option>PETG</option><option>ABS</option>
+          <option value="">Preheat...</option><option>PLA</option><option>PETG</option><option>ABS</option>
         </select>
-        <button class="ctrl" onclick="control('${w.printer}','cooldown')">Refroidir</button>
-        <button class="ctrl estop danger" onclick="control('${w.printer}','estop',null,true)">Arrêt</button>
+        <button class="ctrl" onclick="control('${w.printer}','cooldown')">Cooldown</button>
+        <button class="ctrl estop danger" onclick="control('${w.printer}','estop',null,true)">Stop</button>
       </div>`;
       break;
   }
@@ -1675,8 +1675,8 @@ function updatePW(wid,s){
       const p=s.progress||0, C=2*Math.PI*30;
       const r=document.getElementById("pwr-"+wid); if(r)r.style.strokeDashoffset=C*(1-p);
       const el=document.getElementById("pwpct-"+wid); if(el)el.textContent=Math.round(p*100)+"%";
-      const fn=document.getElementById("pwfn-"+wid); if(fn)fn.textContent=s.filename||"En attente…";
-      const eta=document.getElementById("pweta-"+wid); if(eta)eta.textContent="restant : "+fmtTime(s.time_left);
+      const fn=document.getElementById("pwfn-"+wid); if(fn)fn.textContent=s.filename||"Waiting...";
+      const eta=document.getElementById("pweta-"+wid); if(eta)eta.textContent="left: "+fmtTime(s.time_left);
       break;}
     case"temps":{
       const set=(sfx,obj,tgt)=>{
@@ -1792,7 +1792,7 @@ async function loadLayouts(){
 
 function rebuildLayoutSelect(){
   const sel=document.getElementById("layout-select");
-  sel.innerHTML='<option value="">— nouveau —</option>';
+  sel.innerHTML='<option value="">-- new --</option>';
   Object.keys(panelLayouts).forEach(n=>{
     const o=document.createElement("option");o.value=n;o.textContent=n;
     if(n===activeLayout)o.selected=true;
@@ -1813,25 +1813,25 @@ function switchLayout(name){
 
 function saveCurrentLayout(){
   const name=document.getElementById("layout-name").value.trim();
-  if(!name){toast("Entre un nom pour ce layout",true);return;}
+  if(!name){toast("Enter a layout name",true);return;}
   panelLayouts[name]=JSON.parse(JSON.stringify(panelWidgets));
   activeLayout=name;
   LS.setLayouts({active:name,layouts:panelLayouts});
   rebuildLayoutSelect();
-  toast("Layout « "+name+" » enregistré");
+  toast('Layout "'+name+'" saved');
 }
 
 function deleteCurrentLayout(){
   const name=activeLayout||document.getElementById("layout-name").value.trim();
-  if(!name||!panelLayouts[name]){toast("Aucun layout à supprimer",true);return;}
-  if(!confirm("Supprimer le layout « "+name+" » ?"))return;
+  if(!name||!panelLayouts[name]){toast("No layout to delete",true);return;}
+  if(!confirm('Delete layout "'+name+'"?'))return;
   delete panelLayouts[name];
   activeLayout=""; panelWidgets=[];
   LS.setLayouts({active:"",layouts:panelLayouts});
   rebuildLayoutSelect();
   document.getElementById("layout-name").value="";
   document.getElementById("layout-select").value="";
-  renderPanelGrid(); toast("Layout supprimé");
+  renderPanelGrid(); toast("Layout deleted");
 }
 
 // ---- Mode édition ----
@@ -1851,7 +1851,7 @@ function closeWidgetPicker(){document.getElementById("wp-overlay").classList.rem
 
 function addWidget(type){
   const pid=document.getElementById("wp-printer").value;
-  if(!pid){toast("Sélectionne une imprimante",true);return;}
+  if(!pid){toast("Select a printer",true);return;}
   const def=WT_DEF[type]||{colSpan:4,rowSpan:3};
   // Trouve la première position libre
   let row=0, col=0;
@@ -1890,7 +1890,7 @@ window.addEventListener("resize",()=>{
 
 document.getElementById("wp-overlay").addEventListener("click",e=>{if(e.target.id==="wp-overlay")closeWidgetPicker();});
 
-// ---- Thème clair / sombre ----
+// ---- Theme clair / sombre ----
 function applyTheme(t){
   document.body.dataset.theme=t;
   document.getElementById("theme-btn").innerHTML=t==="light"?"&#9788;":"&#9790;";
@@ -1898,7 +1898,7 @@ function applyTheme(t){
 }
 function toggleTheme(){const t=document.body.dataset.theme==="light"?"dark":"light";localStorage.setItem("pw-theme",t);applyTheme(t);}
 
-// ---- Mode TV (plein écran) ----
+// ---- TV mode ----
 function toggleTV(){
   document.body.classList.toggle("tv");
   if(document.body.classList.contains("tv")){if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen().catch(()=>{});}
@@ -1935,3 +1935,5 @@ setTimeout(moveIndicator,60);
 </script>
 </body>
 </html>
+
+
