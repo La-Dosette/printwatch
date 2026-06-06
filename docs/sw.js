@@ -1,6 +1,6 @@
 // Service worker PrintWatch - cache only the static UI shell.
 // Requests to the local agent/API are never intercepted.
-const CACHE = "printwatch-v4";
+const CACHE = "printwatch-v5";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./static/logo.svg", "./icon.svg"];
 
 self.addEventListener("install", e => {

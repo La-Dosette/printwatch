@@ -71,6 +71,11 @@
   .title{font-weight:600;font-size:16px;display:flex;align-items:center;gap:9px}
   .type-chip{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);
     background:rgba(108,140,255,.14);border:1px solid rgba(108,140,255,.25);padding:3px 8px;border-radius:20px}
+  .caps{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+  .cap{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);
+    border:1px solid var(--glass-brd);background:rgba(255,255,255,.04);padding:4px 6px;border-radius:6px}
+  .cap.on{color:var(--ok);border-color:rgba(52,224,161,.32);background:rgba(52,224,161,.08)}
+  .cap.warn{color:var(--warn);border-color:rgba(255,206,77,.32);background:rgba(255,206,77,.08)}
   .pill{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:500;color:var(--muted);
     padding:5px 11px;border-radius:30px;background:var(--surface2);border:1px solid var(--glass-brd)}
   .led{width:8px;height:8px;border-radius:50%;background:var(--muted);position:relative}
@@ -520,6 +525,8 @@
   body.skin-archive .drag-handle{color:var(--ink2)}
   body.skin-archive .type-chip{font-family:'Space Mono';font-weight:700;color:var(--ink);background:none;
     border:1px solid var(--ink);border-radius:0;text-transform:uppercase}
+  body.skin-archive .cap{font-family:'Space Mono';border-radius:0;background:none;color:var(--ink2)}
+  body.skin-archive .cap.on,body.skin-archive .cap.warn{color:var(--ink);border-color:var(--ink)}
   body.skin-archive .pill{background:none;border:1px solid var(--ink);border-radius:0;color:var(--ink)!important;
     font-family:'Space Mono';font-weight:700;text-transform:uppercase;font-size:10px}
   body.skin-archive .pill .led{border-radius:0;background:var(--ink)!important;width:7px;height:7px}
@@ -841,7 +848,16 @@ function pushMonitor(){
 const STATE_LABELS={printing:"Printing",paused:"Paused",complete:"Done",completed:"Done",
   standby:"Ready",idle:"Ready",ready:"Ready",operational:"Ready",busy:"Busy",heating:"Heating",
   pausing:"Pausing...",cancel:"Cancelled",cancelled:"Cancelled",stopped:"Stopped",
-  camera:"Camera seule",error:"Error",offline:"Offline",unknown:"—"};
+  camera:"Camera only",detected:"Detected",error:"Error",offline:"Offline",unknown:"—"};
+
+const CAP_LABELS={monitoring:"Status",webcam:"Webcam",controls:"Controls",stats:"Stats",needs_credentials:"Needs key"};
+function capHtml(caps){
+  caps=caps||{};
+  const keys=["monitoring","webcam","controls","stats"];
+  const out=keys.map(k=>`<span class="cap${caps[k]?" on":""}">${CAP_LABELS[k]}</span>`);
+  if(caps.needs_credentials)out.push(`<span class="cap warn">${CAP_LABELS.needs_credentials}</span>`);
+  return out.join("");
+}
 
 function fmtTime(s){if(s==null)return"—";s=Math.round(s);const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);
   return h>0?h+"h"+String(m).padStart(2,"0"):m+" min";}
@@ -887,7 +903,7 @@ function createCard(p,i){
       <span style="display:flex;align-items:center;gap:6px">
         <span class="pill" id="pill-${p.id}"><span class="led"></span><span class="st">…</span></span>
         <span class="cfg-wrap">
-          <button class="card-cfg" title="Personnaliser la carte" onclick="toggleCardMenu('${p.id}')">⋯</button>
+          <button class="card-cfg" title="Customize card" onclick="toggleCardMenu('${p.id}')">⋯</button>
           <div class="cfg-menu" id="cfg-${p.id}">
             <label class="chk"><input type="checkbox" data-w="webcam" onchange="setWidget('${p.id}','webcam',this.checked)"> Webcam</label>
             <label class="chk"><input type="checkbox" data-w="chart" onchange="setWidget('${p.id}','chart',this.checked)"> Chart temp.</label>
@@ -897,6 +913,7 @@ function createCard(p,i){
         </span>
       </span>
     </div>
+    <div class="caps" id="caps-${p.id}">${capHtml(p.capabilities)}</div>
     <div class="webcam" id="wc-${p.id}">
       <img id="cam-${p.id}" alt="" onload="document.getElementById('scan-${p.id}').style.display=''"
         onerror="this.style.display='none';const w=document.getElementById('wc-${p.id}');w.querySelector('.scan').style.display='none';if(!w.dataset.msg){w.dataset.msg=1;w.insertAdjacentText('beforeend','No webcam stream')}">
@@ -953,7 +970,7 @@ function createCard(p,i){
       </div>`:""}
       <div class="controls">
         <button class="ctrl" onclick="reloadCamera('${p.id}')">Camera ↻</button>
-        <button class="ctrl" onclick="openCamera('${p.id}')">Camera ouvrir</button>
+        <button class="ctrl" onclick="openCamera('${p.id}')">Open camera</button>
       </div>
     </div>
     <div class="card-foot"><button onclick="removePrinter('${p.id}','${esc(p.name)}')">x Delete</button></div>`;
@@ -986,7 +1003,7 @@ function setCardWebcam(p){
 }
 
 function reloadCamera(id){
-  const p=printersById[id]; if(!p){toast("Camera introuvable",true);return;}
+  const p=printersById[id]; if(!p){toast("Camera not found",true);return;}
   const img=document.getElementById("cam-"+id),box=document.getElementById("wc-"+id);
   const url=webcamUrl(p);
   if(!url){toast("No camera URL set",true);return;}
@@ -995,7 +1012,7 @@ function reloadCamera(id){
 }
 
 function openCamera(id){
-  const p=printersById[id]; if(!p){toast("Camera introuvable",true);return;}
+  const p=printersById[id]; if(!p){toast("Camera not found",true);return;}
   const url=webcamUrl(p);
   if(!url){toast("No camera URL set",true);return;}
   window.open(url,"_blank","noopener");
@@ -1022,6 +1039,8 @@ async function poll(){
 
 function updateCard(id,s){
   const pill=document.getElementById("pill-"+id); if(!pill)return;
+  const caps=document.getElementById("caps-"+id);
+  if(caps)caps.innerHTML=capHtml(s.capabilities||printersById[id]?.capabilities||{});
   const st=s.error?"error":(s.state||"offline");
   pill.className="pill "+(!s.online?"":(st==="printing"?"printing":(st==="error"?"error":"online")));
   pill.querySelector(".st").textContent=s.error?"Error":(STATE_LABELS[st]||st);
@@ -1075,7 +1094,7 @@ async function addPrinter(){
   err.textContent="";
   const host=val("f-host").trim(), name=val("f-name").trim(),
         webcam=val("f-webcam").trim(), serial=val("f-serial").trim(), apikey=val("f-apikey").trim();
-  if(!host){err.textContent="Entre une adresse IP.";return;}
+  if(!host){err.textContent="Enter an IP address.";return;}
   btn.disabled=true;btn.innerHTML='<span class="spin"></span>Detecting...';
   try{
     // Détection via l'agent local (probe Moonraker/OctoPrint)
@@ -1083,7 +1102,8 @@ async function addPrinter(){
     const d=await r.json();
     if(!r.ok){err.textContent=d.error||"No printer found. Is the local agent running?";return;}
     const printer={id:"p"+Date.now().toString(36)+Math.random().toString(36).slice(2,5),
-      name:name||d.host,host:d.host,type:d.type,serial,apikey,webcam:webcam||d.webcam||""};
+      name:name||d.host,host:d.host,type:d.type,serial,apikey,webcam:webcam||d.webcam||"",
+      capabilities:d.capabilities||{},reason:d.reason||""};
     const list=LS.printers(); list.push(printer); LS.setPrinters(list);
     pushMonitor();
     closeModal();await loadPrinters();

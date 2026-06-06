@@ -7,7 +7,7 @@ PrintWatch runs a small Python agent on your PC. The web UI talks to that agent 
 ## What It Does
 
 - Adds a printer from an IP address.
-- Detects Moonraker, OctoPrint, FlashForge 5M, Elegoo SDCP FDM, Bambu Lab MQTT, or webcam-only mode.
+- Detects Moonraker, OctoPrint, PrusaLink, Duet/RRF, FlashForge 5M, Elegoo SDCP FDM, Bambu Lab MQTT, Creality LAN candidates, Anycubic candidates, Repetier candidates, or webcam-only mode.
 - Shows status, progress, temperatures, webcam, basic stats, and controls when supported.
 - Sends optional Discord alerts.
 

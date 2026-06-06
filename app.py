@@ -156,10 +156,22 @@ def _printer_from_cfg(item):
         base = f"http://{host}:7125"
     elif ptype == "flashforge_5m":
         base = f"http://{host}:8898"
+    elif ptype == "prusalink":
+        base = f"http://{host}"
+    elif ptype == "duet_rrf":
+        base = f"http://{host}"
+    elif ptype == "repetier_server":
+        base = f"http://{host}"
     elif ptype == "elegoo_sdcp_fdm":
         base = f"ws://{host}:3030/websocket"
+    elif ptype == "elegoo_sdcp_resin":
+        base = f"ws://{host}:3031/websocket"
     elif ptype == "bambulab_mqtt":
         base = f"{host}:8883"
+    elif ptype == "creality_lan":
+        base = f"ws://{host}:9999"
+    elif ptype == "anycubic_lan":
+        base = f"http://{host}"
     elif ptype == "camera_only":
         base = item.get("webcam") or discover_webcam(host)
     else:
@@ -198,8 +210,12 @@ def monitor_loop():
 # --------------------------------------------------------------------------
 # Detection du protocole a partir d'une simple IP
 # --------------------------------------------------------------------------
-def detect_protocol(host, apikey=None):
-    """Sonde l'hote pour deviner le firmware. Retourne (type, base_url) ou (None, None)."""
+def _detected(ptype, host, base, reason):
+    return {"type": ptype, "host": host, "base": base, "reason": reason}
+
+
+def detect_printer(host, apikey=None):
+    """Probe a host and return a detection dict, or None."""
     raw_host = host
     host, host_only, explicit_base = normalize_host(host)
 
@@ -208,7 +224,7 @@ def detect_protocol(host, apikey=None):
         try:
             r = requests.get(f"{base}/printer/info", timeout=HTTP_TIMEOUT)
             if r.ok and "result" in r.json():
-                return "moonraker", base
+                return _detected("moonraker", host_only, base, "Moonraker found on port 7125.")
         except (requests.RequestException, ValueError):
             pass
 
@@ -219,42 +235,106 @@ def detect_protocol(host, apikey=None):
         r = requests.get(f"{base}/api/version", headers=headers, timeout=HTTP_TIMEOUT)
         # 200 = ok ; 403 = OctoPrint present mais cle manquante/invalide.
         if r.status_code in (200, 403):
-            return "octoprint", base
+            return _detected("octoprint", host, base, "OctoPrint API found. API key may be required.")
     except requests.RequestException:
         pass
 
-    # 3) FlashForge Adventurer 5M / 5M Pro - API HTTP locale sur 8898.
+    # 3) PrusaLink / Prusa Connect local API.
+    try:
+        base = f"http://{host}"
+        headers = {"X-Api-Key": apikey} if apikey else {}
+        r = requests.get(f"{base}/api/v1/status", headers=headers, timeout=HTTP_TIMEOUT)
+        if r.status_code in (200, 401, 403):
+            return _detected("prusalink", host, base, "PrusaLink API found. API key may be required.")
+    except requests.RequestException:
+        pass
+
+    # 4) Duet / RepRapFirmware HTTP API.
+    try:
+        base = f"http://{host}"
+        r = requests.get(f"{base}/rr_status?type=2", timeout=HTTP_TIMEOUT)
+        if r.status_code in (200, 401, 403) and (
+                "application/json" in (r.headers.get("Content-Type") or "").lower() or r.text.strip().startswith("{")):
+            return _detected("duet_rrf", host, base, "Duet RepRapFirmware API found.")
+    except requests.RequestException:
+        pass
+
+    # 5) Repetier Server often exposes /printer/api, but requires printer/API details for status.
+    try:
+        base = f"http://{host}"
+        r = requests.get(f"{base}/printer/api", timeout=HTTP_TIMEOUT)
+        if r.status_code in (200, 401, 403):
+            return _detected("repetier_server", host, base, "Repetier Server candidate found.")
+    except requests.RequestException:
+        pass
+
+    # 6) FlashForge Adventurer 5M / 5M Pro - API HTTP locale sur 8898.
     # Le statut complet exige serialNumber + checkCode, mais la presence du port
     # suffit pour proposer le connecteur et demander ces champs a l'utilisateur.
     try:
         base = f"http://{host_only}:8898"
         r = requests.post(f"{base}/detail", json={}, timeout=HTTP_TIMEOUT)
         if r.status_code in (200, 400, 401, 403, 405):
-            return "flashforge_5m", base
+            return _detected("flashforge_5m", host_only, base, "FlashForge 5M local API found. Serial/checkCode required.")
     except requests.RequestException:
         pass
 
-    # 4) Elegoo Centauri Carbon / SDCP FDM - WebSocket local sur 3030.
+    # 7) Elegoo Centauri Carbon / SDCP FDM - WebSocket local sur 3030.
     try:
         with socket.create_connection((host_only, 3030), timeout=HTTP_TIMEOUT):
-            return "elegoo_sdcp_fdm", f"ws://{host_only}:3030/websocket"
+            return _detected("elegoo_sdcp_fdm", host_only, f"ws://{host_only}:3030/websocket",
+                             "Elegoo SDCP FDM WebSocket found on port 3030.")
     except OSError:
         pass
 
-    # 5) Bambu Lab - MQTT local TLS sur 8883.
+    # 8) Elegoo resin SDCP usually uses a local WebSocket discovery/control stack.
+    try:
+        with socket.create_connection((host_only, 3031), timeout=HTTP_TIMEOUT):
+            return _detected("elegoo_sdcp_resin", host_only, f"ws://{host_only}:3031/websocket",
+                             "Elegoo resin SDCP candidate found.")
+    except OSError:
+        pass
+
+    # 9) Bambu Lab - MQTT local TLS sur 8883.
     # Il faudra le serial + LAN Access Code pour lire le statut.
     try:
         with socket.create_connection((host_only, 8883), timeout=HTTP_TIMEOUT):
-            return "bambulab_mqtt", f"{host_only}:8883"
+            return _detected("bambulab_mqtt", host_only, f"{host_only}:8883",
+                             "Bambu Lab MQTT port found. Serial and LAN access code required.")
     except OSError:
         pass
 
-    # 6) Webcam seule - utile pour Creality K1/K1 Max quand Moonraker est ferme.
+    # 10) Creality native LAN candidate. Models differ, so status is explicit unsupported for now.
+    try:
+        with socket.create_connection((host_only, 9999), timeout=HTTP_TIMEOUT):
+            return _detected("creality_lan", host_only, f"ws://{host_only}:9999",
+                             "Creality native LAN port found. Status parser is not available yet.")
+    except OSError:
+        pass
+
+    # 11) Anycubic local candidates vary heavily by firmware. Detect open LAN ports only.
+    for port in (6000,):
+        try:
+            with socket.create_connection((host_only, port), timeout=1.5):
+                return _detected("anycubic_lan", host_only, f"http://{host_only}:{port}",
+                                 f"Anycubic LAN candidate found on port {port}.")
+        except OSError:
+            pass
+
+    # 12) Webcam seule - utile pour Creality K1/K1 Max quand Moonraker est ferme.
     cam = discover_webcam(raw_host)
     if cam:
-        return "camera_only", cam
+        return _detected("camera_only", host_only, cam, "Webcam stream found only.")
 
-    return None, None
+    return None
+
+
+def detect_protocol(host, apikey=None):
+    """Backward-compatible tuple wrapper."""
+    result = detect_printer(host, apikey)
+    if not result:
+        return None, None
+    return result["type"], result["base"]
 
 
 # --------------------------------------------------------------------------
@@ -265,9 +345,15 @@ from connectors import empty_status, fetch_status
 PROTOCOL_CAPABILITIES = {
     "moonraker": {"monitoring": True, "controls": True, "stats": True, "webcam": True, "needs_credentials": False},
     "octoprint": {"monitoring": True, "controls": False, "stats": False, "webcam": True, "needs_credentials": True},
+    "prusalink": {"monitoring": True, "controls": False, "stats": False, "webcam": False, "needs_credentials": True},
+    "duet_rrf": {"monitoring": True, "controls": False, "stats": False, "webcam": False, "needs_credentials": False},
+    "repetier_server": {"monitoring": False, "controls": False, "stats": False, "webcam": False, "needs_credentials": True},
     "flashforge_5m": {"monitoring": True, "controls": False, "stats": False, "webcam": False, "needs_credentials": True},
     "elegoo_sdcp_fdm": {"monitoring": True, "controls": False, "stats": False, "webcam": True, "needs_credentials": False},
+    "elegoo_sdcp_resin": {"monitoring": False, "controls": False, "stats": False, "webcam": True, "needs_credentials": False},
     "bambulab_mqtt": {"monitoring": True, "controls": False, "stats": False, "webcam": False, "needs_credentials": True},
+    "creality_lan": {"monitoring": False, "controls": False, "stats": False, "webcam": True, "needs_credentials": False},
+    "anycubic_lan": {"monitoring": False, "controls": False, "stats": False, "webcam": False, "needs_credentials": False},
     "camera_only": {"monitoring": False, "controls": False, "stats": False, "webcam": True, "needs_credentials": False},
 }
 
@@ -462,10 +548,22 @@ def printer_from_params():
         base = f"http://{host}:7125"
     elif ptype == "flashforge_5m":
         base = f"http://{host}:8898"
+    elif ptype == "prusalink":
+        base = f"http://{host}"
+    elif ptype == "duet_rrf":
+        base = f"http://{host}"
+    elif ptype == "repetier_server":
+        base = f"http://{host}"
     elif ptype == "elegoo_sdcp_fdm":
         base = f"ws://{host}:3030/websocket"
+    elif ptype == "elegoo_sdcp_resin":
+        base = f"ws://{host}:3031/websocket"
     elif ptype == "bambulab_mqtt":
         base = f"{host}:8883"
+    elif ptype == "creality_lan":
+        base = f"ws://{host}:9999"
+    elif ptype == "anycubic_lan":
+        base = f"http://{host}"
     elif ptype == "camera_only":
         base = request.args.get("webcam", "") or discover_webcam(host)
     else:
@@ -481,15 +579,16 @@ def api_detect():
     apikey = (request.args.get("apikey") or "").strip()
     if not host:
         return jsonify({"ok": False, "error": "Host is required"}), 400
-    ptype, base = detect_protocol(host, apikey)
-    if not ptype:
+    detected = detect_printer(host, apikey)
+    if not detected:
         return jsonify({
             "ok": False,
             "error": "No printer found at this address",
             "reason": "Check the IP address and local network access.",
         }), 422
+    ptype, base = detected["type"], detected["base"]
     clean, host_only, _explicit = normalize_host(host)
-    clean = host_only if ptype in ("moonraker", "camera_only") else clean
+    clean = detected.get("host") or (host_only if ptype in ("moonraker", "camera_only") else clean)
     webcam = discover_webcam(host) if ptype != "bambulab_mqtt" else ""
     if ptype == "camera_only":
         webcam = base
@@ -500,7 +599,7 @@ def api_detect():
         "base": base,
         "webcam": webcam,
         "capabilities": protocol_capabilities(ptype),
-        "reason": f"Detected {ptype}.",
+        "reason": detected.get("reason") or f"Detected {ptype}.",
     })
 
 

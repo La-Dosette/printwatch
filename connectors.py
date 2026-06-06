@@ -141,7 +141,7 @@ def fetch_octoprint(printer, base):
         return empty_status()
 
     if pr.status_code == 403 or jb.status_code == 403:
-        return empty_status({"error": "Cle API OctoPrint manquante ou invalide"})
+        return empty_status({"error": "Missing or invalid OctoPrint API key"})
     if not pr.ok or not jb.ok:
         return empty_status()
 
@@ -168,6 +168,115 @@ def fetch_octoprint(printer, base):
         "progress": round(progress, 4),
         "time_left": jdata.get("progress", {}).get("printTimeLeft"),
         "temps": temps,
+        "error": None,
+    }
+
+
+def fetch_prusalink(printer, base):
+    api_key = (printer.get("apikey") or "").strip()
+    if not api_key:
+        return empty_status({"error": "PrusaLink API key required"})
+
+    headers = {"X-Api-Key": api_key}
+    try:
+        status = requests.get(f"{base}/api/v1/status", headers=headers, timeout=HTTP_TIMEOUT)
+        job = requests.get(f"{base}/api/v1/job", headers=headers, timeout=HTTP_TIMEOUT)
+    except requests.RequestException:
+        return empty_status()
+
+    if status.status_code in (401, 403) or job.status_code in (401, 403):
+        return empty_status({"error": "Invalid PrusaLink API key"})
+    if not status.ok:
+        return empty_status()
+
+    try:
+        sdata = status.json()
+        jdata = job.json() if job.ok else {}
+    except ValueError:
+        return empty_status()
+
+    printer_data = sdata.get("printer") or sdata
+    telemetry = sdata.get("telemetry") or printer_data.get("telemetry") or {}
+    state = str((printer_data.get("state") or sdata.get("state") or "unknown")).lower()
+    progress = _safe_float(jdata.get("progress") or jdata.get("percentage") or 0)
+    if progress > 1:
+        progress /= 100
+
+    temps = {}
+    nozzle = telemetry.get("temp-nozzle") or telemetry.get("nozzle_temp") or telemetry.get("nozzle")
+    bed = telemetry.get("temp-bed") or telemetry.get("bed_temp") or telemetry.get("bed")
+    if nozzle is not None:
+        temps["extruder"] = {"actual": round(_safe_float(nozzle), 1), "target": 0}
+    if bed is not None:
+        temps["bed"] = {"actual": round(_safe_float(bed), 1), "target": 0}
+
+    return {
+        "online": True,
+        "state": state,
+        "filename": (jdata.get("file") or {}).get("name") if isinstance(jdata.get("file"), dict) else jdata.get("file"),
+        "progress": round(max(0, min(progress, 1)), 4),
+        "time_left": jdata.get("time_remaining") or jdata.get("timeRemaining"),
+        "temps": temps,
+        "sensors": {},
+        "system": {},
+        "error": None,
+    }
+
+
+def fetch_duet_rrf(printer, base):
+    try:
+        status = requests.get(f"{base}/rr_status?type=2", timeout=HTTP_TIMEOUT)
+    except requests.RequestException:
+        return empty_status()
+    if status.status_code in (401, 403):
+        return empty_status({"error": "Duet/RRF password required"})
+    if not status.ok:
+        return empty_status()
+
+    try:
+        data = status.json()
+    except ValueError:
+        return empty_status()
+
+    raw_state = str(data.get("status") or data.get("statusLetter") or "unknown").lower()
+    state_map = {
+        "i": "idle",
+        "b": "busy",
+        "p": "printing",
+        "s": "paused",
+        "a": "paused",
+        "d": "complete",
+    }
+    state = state_map.get(raw_state, raw_state)
+    progress = _safe_float(data.get("fractionPrinted") or data.get("fraction_printed") or 0)
+    if progress > 1:
+        progress /= 100
+
+    temps = {}
+    temps_raw = data.get("temps") or {}
+    if isinstance(temps_raw, dict):
+        current = temps_raw.get("current") or []
+        active = temps_raw.get("active") or []
+        if current:
+            temps["extruder"] = {
+                "actual": round(_safe_float(current[0]), 1),
+                "target": round(_safe_float(active[0] if active else 0), 1),
+            }
+        if len(current) > 1:
+            temps["bed"] = {
+                "actual": round(_safe_float(current[1]), 1),
+                "target": round(_safe_float(active[1] if len(active) > 1 else 0), 1),
+            }
+
+    return {
+        "online": True,
+        "state": state,
+        "filename": data.get("fileName") or data.get("file") or None,
+        "progress": round(max(0, min(progress, 1)), 4),
+        "time_left": data.get("printTimeRemaining") or data.get("timesLeft", {}).get("file"),
+        "temps": temps,
+        "sensors": {},
+        "system": {},
         "error": None,
     }
 
@@ -203,7 +312,7 @@ def fetch_flashforge_5m(printer, base):
     check_code = (printer.get("apikey") or "").strip()
     if not serial or not check_code:
         return empty_status({
-            "error": "FlashForge : serialNumber et checkCode requis."
+            "error": "FlashForge serialNumber and checkCode required"
         })
 
     try:
@@ -215,7 +324,7 @@ def fetch_flashforge_5m(printer, base):
         r.raise_for_status()
         raw = r.json()
     except (requests.RequestException, ValueError):
-        return empty_status({"error": "FlashForge : connexion ou authentification impossible"})
+        return empty_status({"error": "FlashForge connection or authentication failed"})
 
     state = str(_ff_get(raw, "status", "machineStatus", "printerStatus", default="unknown")).lower()
     progress = _safe_float(_ff_get(raw, "printProgress", "progress", "printPercent", default=0))
@@ -347,7 +456,7 @@ def fetch_elegoo_sdcp_fdm(printer, base):
                 break
         ws.close()
     except Exception:
-        return empty_status({"error": "Elegoo SDCP : connexion WebSocket impossible"})
+        return empty_status({"error": "Elegoo SDCP WebSocket connection failed"})
 
     if not status:
         return empty_status({"error": "Elegoo SDCP: no status received"})
@@ -418,7 +527,7 @@ def fetch_bambulab_mqtt(printer, base):
     access_code = (printer.get("apikey") or "").strip()
     if not serial or not access_code:
         return empty_status({
-            "error": "Bambu Lab : serialNumber et LAN Access Code requis."
+            "error": "Bambu Lab serial number and LAN access code required"
         })
 
     report_topic = f"device/{serial}/report"
@@ -459,7 +568,7 @@ def fetch_bambulab_mqtt(printer, base):
         client.loop_stop()
         client.disconnect()
     except Exception:
-        return empty_status({"error": "Bambu Lab : connexion MQTT impossible"})
+        return empty_status({"error": "Bambu Lab MQTT connection failed"})
 
     if not received:
         return empty_status({"error": "Bambu Lab: no MQTT status received"})
@@ -522,6 +631,10 @@ def fetch_status(printer):
         return fetch_moonraker(printer, base)
     if ptype == "octoprint":
         return fetch_octoprint(printer, base)
+    if ptype == "prusalink":
+        return fetch_prusalink(printer, base)
+    if ptype == "duet_rrf":
+        return fetch_duet_rrf(printer, base)
     if ptype == "flashforge_5m":
         return fetch_flashforge_5m(printer, base)
     if ptype == "elegoo_sdcp_fdm":
@@ -530,7 +643,15 @@ def fetch_status(printer):
         return fetch_bambulab_mqtt(printer, base)
     if ptype == "camera_only":
         return {**empty_status(), "online": True, "state": "camera", "error": None}
-    return empty_status({"error": "Protocole inconnu"})
+    unsupported = {
+        "creality_lan": "Creality LAN detected. Native status parser is not available yet.",
+        "elegoo_sdcp_resin": "Elegoo resin SDCP detected. Resin status parser is not available yet.",
+        "anycubic_lan": "Anycubic LAN candidate detected. Local API varies by model.",
+        "repetier_server": "Repetier Server candidate detected. Add printer slug/API details to enable status.",
+    }
+    if ptype in unsupported:
+        return empty_status({"state": "detected", "error": unsupported[ptype]})
+    return empty_status({"error": "Unknown protocol"})
 
 
 

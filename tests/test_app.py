@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch
 
 import app as printwatch
+import connectors
 
 
 class HostTests(unittest.TestCase):
@@ -28,7 +29,13 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(res.get_json()["error"], "Host is required")
 
     def test_detect_returns_stable_payload(self):
-        with patch.object(printwatch, "detect_protocol", return_value=("moonraker", "http://printer:7125")), \
+        detected = {
+            "type": "moonraker",
+            "host": "printer",
+            "base": "http://printer:7125",
+            "reason": "Moonraker found on port 7125.",
+        }
+        with patch.object(printwatch, "detect_printer", return_value=detected), \
                 patch.object(printwatch, "discover_webcam", return_value="http://printer/webcam"):
             res = self.client.get("/api/detect?host=printer")
 
@@ -37,7 +44,14 @@ class ApiTests(unittest.TestCase):
         self.assertTrue(data["ok"])
         self.assertEqual(data["type"], "moonraker")
         self.assertTrue(data["capabilities"]["controls"])
-        self.assertIn("reason", data)
+        self.assertEqual(data["reason"], "Moonraker found on port 7125.")
+
+    def test_detect_tuple_wrapper(self):
+        with patch.object(printwatch, "detect_printer", return_value={
+            "type": "prusalink",
+            "base": "http://printer",
+        }):
+            self.assertEqual(printwatch.detect_protocol("printer"), ("prusalink", "http://printer"))
 
     def test_status_requires_host(self):
         res = self.client.get("/api/status")
@@ -55,6 +69,21 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(data["type"], "moonraker")
         self.assertEqual(data["temps"], {})
         self.assertTrue(data["capabilities"]["stats"])
+
+    def test_new_protocol_capabilities(self):
+        self.assertTrue(printwatch.protocol_capabilities("prusalink")["needs_credentials"])
+        self.assertFalse(printwatch.protocol_capabilities("creality_lan")["monitoring"])
+
+
+class ConnectorTests(unittest.TestCase):
+    def test_missing_prusalink_key_returns_clear_error(self):
+        status = connectors.fetch_status({"type": "prusalink", "base_url": "http://printer", "apikey": ""})
+        self.assertEqual(status["error"], "PrusaLink API key required")
+
+    def test_unsupported_detected_protocol_returns_clear_error(self):
+        status = connectors.fetch_status({"type": "creality_lan", "base_url": "ws://printer:9999"})
+        self.assertEqual(status["state"], "detected")
+        self.assertIn("Creality LAN detected", status["error"])
 
 
 if __name__ == "__main__":
