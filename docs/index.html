@@ -161,6 +161,15 @@
   @keyframes spin{to{transform:rotate(360deg)}}
   .num{transition:color .3s}
 
+  /* Opera GX a tendance à saccader avec backdrop-filter + ombres + MJPEG.
+     On garde le style, mais on coupe les effets qui déclenchent des recompositions lourdes. */
+  body.opera-perf .overlay,body.opera-perf .modal{backdrop-filter:none!important}
+  body.opera-perf .card,body.opera-perf .kpi,body.opera-perf .job,body.opera-perf .pw,
+  body.opera-perf .modal,body.opera-perf .cfg-menu{box-shadow:none!important}
+  body.opera-perf .card:hover,body.opera-perf .kpi:hover,body.opera-perf .icon-btn:hover,
+  body.opera-perf .btn:hover{transform:none!important}
+  body.opera-perf .webcam .scan,body.opera-perf .pill.printing .led::after{display:none!important}
+
   /* ---- Onglets ---- */
   .tabs{position:relative;display:flex;gap:4px;background:var(--surface2);border:1px solid var(--glass-brd);
     padding:5px;border-radius:30px}
@@ -798,7 +807,9 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const POLL_MS=2500, MAX_POINTS=60, RING_R=40, RING_C=2*Math.PI*RING_R;
+const IS_OPERA=/\b(OPR|Opera)\//i.test(navigator.userAgent)
+  || !!(navigator.userAgentData?.brands||[]).find(b=>/Opera/i.test(b.brand));
+const POLL_MS=IS_OPERA?5000:2500, MAX_POINTS=IS_OPERA?30:60, RING_R=40, RING_C=2*Math.PI*RING_R;
 const charts={}, history={}, cards={};
 const statCharts={}, statJobs={}, statByType={};
 let currentTab="dashboard";
@@ -984,8 +995,8 @@ function createCard(p,i){
   charts[p.id]=new Chart(el.querySelector(`#chart-${p.id}`),{
     type:"line",
     data:{labels:[],datasets:[
-      mkDs("Nozzle","#ff6b6b"),mkDs("Bed","#ff9f43"),mkDs("Chamber","#ffd36b",true)]},
-    options:{responsive:true,maintainAspectRatio:false,animation:{duration:400},
+      mkDs("Buse","#ff6b6b"),mkDs("Plateau","#ff9f43"),mkDs("Chambre","#ffd36b",true)]},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:IS_OPERA?0:400},
       plugins:{legend:{labels:{color:"#828aa0",boxWidth:9,font:{size:10,family:"Space Grotesk"},usePointStyle:true,pointStyle:"circle"}}},
       scales:{x:{display:false},y:{ticks:{color:"#828aa0",font:{size:10}},grid:{color:"rgba(255,255,255,.05)"}}}}
   });
@@ -1232,8 +1243,8 @@ function renderActivity(p,act){
     data:{labels,datasets:[{label:"Prints",data:act.map(a=>a.count),
       backgroundColor:document.body.classList.contains("skin-archive")?"#1A1A1A":"rgba(108,140,255,.6)",
       borderRadius:document.body.classList.contains("skin-archive")?0:4,maxBarThickness:14}]},
-    options:{responsive:true,maintainAspectRatio:false,animation:{duration:600},
-      plugins:{legend:{display:false},tooltip:{callbacks:{afterLabel:c=>"including "+act[c.dataIndex].completed+" completed"}}},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:IS_OPERA?0:600},
+      plugins:{legend:{display:false},tooltip:{callbacks:{afterLabel:c=>"dont "+act[c.dataIndex].completed+" réussies"}}},
       scales:{x:{ticks:{color:"#828aa0",font:{size:9},maxRotation:0,autoSkip:true,maxTicksLimit:8},grid:{display:false}},
         y:{beginAtZero:true,ticks:{color:"#828aa0",font:{size:9},precision:0},grid:{color:"rgba(128,128,128,.12)"}}}}});
 }
@@ -1418,11 +1429,13 @@ function applyAppearance(a){
   const skin=a.skin||localStorage.getItem("pw-skin")||"archive";
   b.classList.toggle("skin-archive",skin==="archive");
   localStorage.setItem("pw-skin",skin);
-  b.classList.add("anim-"+(a.anim||"full"));
+  const anim=IS_OPERA?"none":(a.anim||"full");
+  b.classList.toggle("opera-perf",IS_OPERA);
+  b.classList.add("anim-"+anim);
   // En mode Archive, le skin impose son propre fond/police/arrondi : on n'ajoute pas
   // les classes qui entreraient en conflit (notamment radius-*).
   if(skin!=="archive"){
-    b.classList.add("bg-"+(a.bg||"color"));
+    b.classList.add("bg-"+(IS_OPERA?"flat":(a.bg||"color")));
     b.classList.add("font-"+(a.font||"rounded"));
     b.classList.add("radius-"+(a.radius||"normal"));
     if(a.density==="dense")b.classList.add("dense");
@@ -1447,8 +1460,8 @@ async function openSettings(){
     document.getElementById("set-logo").value=a.logo||"";
     document.getElementById("set-accent").value=a.accent||"#6c8cff";
     document.getElementById("set-accent2").value=a.accent2||"#a06bff";
-    document.getElementById("set-anim").value=a.anim||"full";
-    document.getElementById("set-bg").value=a.bg||"color";
+    document.getElementById("set-anim").value=IS_OPERA?"none":(a.anim||"full");
+    document.getElementById("set-bg").value=IS_OPERA?"flat":(a.bg||"color");
     document.getElementById("set-font").value=a.font||"rounded";
     document.getElementById("set-radius").value=a.radius||"normal";
     document.getElementById("set-density").value=a.density||"comfort";
@@ -1659,8 +1672,8 @@ function buildWidgetBody(w,body){
       requestAnimationFrame(()=>{
         const c=body.querySelector("canvas");
         if(c) panelCharts[w.id]=new Chart(c,{type:"line",
-          data:{labels:[],datasets:[mkDs("Nozzle","#ff6b6b"),mkDs("Bed","#ff9f43"),mkDs("Chamber","#ffd36b",true)]},
-          options:{responsive:true,maintainAspectRatio:false,animation:{duration:300},
+          data:{labels:[],datasets:[mkDs("Buse","#ff6b6b"),mkDs("Plateau","#ff9f43"),mkDs("Chambre","#ffd36b",true)]},
+          options:{responsive:true,maintainAspectRatio:false,animation:{duration:IS_OPERA?0:300},
             plugins:{legend:{labels:{color:"#828aa0",boxWidth:8,font:{size:9}}}},
             scales:{x:{display:false},y:{ticks:{color:"#828aa0",font:{size:9}},grid:{color:"rgba(255,255,255,.05)"}}}}});
       });
