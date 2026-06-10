@@ -874,7 +874,8 @@ const LS={
 // Helpers requête imprimante
 const pq=p=>`host=${encodeURIComponent(p.host)}&type=${encodeURIComponent(p.type||"")}`+
   (p.serial?`&serial=${encodeURIComponent(p.serial)}`:"")+
-  (p.apikey?`&apikey=${encodeURIComponent(p.apikey)}`:"");
+  (p.apikey?`&apikey=${encodeURIComponent(p.apikey)}`:"")+
+  (p.webcam?`&webcam=${encodeURIComponent(p.webcam)}`:"");
 const webcamUrl=p=>{
   if(p.webcam&&p.webcam.trim())return p.webcam.trim();
   if(p.type==="flashforge_5m")return `http://${p.host}:8080/?action=stream`;
@@ -889,7 +890,7 @@ const lastStatus={};    // id -> dernier statut (panels + retour d'onglet)
 function pushMonitor(){
   const payload={webhook:LS.webhook(),alerts:LS.alerts(),
     printers:LS.printers().map(p=>({id:p.id,name:p.name,host:p.host,type:p.type,
-      serial:p.serial||"",apikey:p.apikey||""}))};
+      serial:p.serial||"",apikey:p.apikey||"",webcam:p.webcam||""}))};
   fetch(api("/api/monitor"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}).catch(()=>{});
 }
 const STATE_LABELS={printing:"Printing",paused:"Paused",complete:"Done",completed:"Done",
@@ -905,6 +906,12 @@ function capHtml(caps){
   if(caps.needs_credentials)out.push(`<span class="cap warn">${CAP_LABELS.needs_credentials}</span>`);
   return out.join("");
 }
+function canControl(p){
+  const caps=p?.capabilities||{};
+  return !!caps.controls||["moonraker","octoprint"].includes(p?.type);
+}
+function hasMachineHealth(p){return p?.type==="moonraker";}
+function hasAdvancedControls(p){return p?.type==="moonraker";}
 
 function fmtTime(s){if(s==null)return"—";s=Math.round(s);const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);
   return h>0?h+"h"+String(m).padStart(2,"0"):m+" min";}
@@ -954,8 +961,8 @@ function createCard(p,i){
           <div class="cfg-menu" id="cfg-${p.id}">
             <label class="chk"><input type="checkbox" data-w="webcam" onchange="setWidget('${p.id}','webcam',this.checked)"> Webcam</label>
             <label class="chk"><input type="checkbox" data-w="chart" onchange="setWidget('${p.id}','chart',this.checked)"> Chart temp.</label>
-            ${p.type==="moonraker"?`<label class="chk"><input type="checkbox" data-w="controls" onchange="setWidget('${p.id}','controls',this.checked)"> Controls</label>
-            <label class="chk"><input type="checkbox" data-w="health" onchange="setWidget('${p.id}','health',this.checked)"> Machine Health</label>`:""}
+            ${canControl(p)?`<label class="chk"><input type="checkbox" data-w="controls" onchange="setWidget('${p.id}','controls',this.checked)"> Controls</label>`:""}
+            ${hasMachineHealth(p)?`<label class="chk"><input type="checkbox" data-w="health" onchange="setWidget('${p.id}','health',this.checked)"> Machine Health</label>`:""}
           </div>
         </span>
       </span>
@@ -987,7 +994,7 @@ function createCard(p,i){
         <div class="temp chamber" id="cb-${p.id}" style="display:none"><div class="lbl"><span class="ico"></span>Chamber</div>
           <div class="val num" id="tc-${p.id}">—</div><div class="tgt" id="tgc-${p.id}"></div><div class="heat" id="hc-${p.id}"></div></div>
       </div>
-      ${p.type==="moonraker"?`
+      ${hasMachineHealth(p)?`
       <div class="health" id="health-${p.id}">
         <div class="health-grid">
           <div class="hstat"><span>CPU</span><b id="cpu-${p.id}">—</b></div>
@@ -998,7 +1005,7 @@ function createCard(p,i){
         <div class="sensors" id="sens-${p.id}"></div>
       </div>`:""}
       <div class="chart-box"><canvas id="chart-${p.id}"></canvas></div>
-      ${p.type==="moonraker"?`
+      ${canControl(p)?`
       <div class="controls">
         <button class="ctrl" id="pause-${p.id}" onclick="control('${p.id}','pause')">Pause</button>
         <button class="ctrl" id="resume-${p.id}" onclick="control('${p.id}','resume')" style="display:none">Resume</button>
@@ -1009,12 +1016,13 @@ function createCard(p,i){
           <option value="">Preheat...</option><option>PLA</option><option>PETG</option><option>ABS</option>
         </select>
         <button class="ctrl" onclick="control('${p.id}','cooldown')">Cooldown</button>
-        <button class="ctrl estop danger" onclick="control('${p.id}','estop',null,true)">Stop</button>
+        ${hasAdvancedControls(p)?`<button class="ctrl estop danger" onclick="control('${p.id}','estop',null,true)">Stop</button>`:""}
       </div>
+      ${hasAdvancedControls(p)?`
       <div class="controls">
         <button class="ctrl" onclick="control('${p.id}','light_on')">Light on</button>
         <button class="ctrl" onclick="control('${p.id}','light_off')">Light off</button>
-      </div>`:""}
+      </div>`:""}`:""}
       <div class="controls">
         <button class="ctrl" onclick="reloadCamera('${p.id}')">Camera ↻</button>
         <button class="ctrl" onclick="openCamera('${p.id}')">Open camera</button>
@@ -1339,12 +1347,13 @@ function closeJob(){document.getElementById("jd-overlay").classList.remove("show
 // ---- Controls imprimante ----
 function updateControls(id,state,online){
   const pause=document.getElementById("pause-"+id);
-  if(!pause)return; // pas de contrôles (OctoPrint)
+  if(!pause)return;
   const resume=document.getElementById("resume-"+id),cancel=document.getElementById("cancel-"+id);
   const printing=state==="printing",paused=state==="paused";
   pause.style.display=paused?"none":"";
   resume.style.display=paused?"":"none";
   pause.disabled=!online||!printing;
+  resume.disabled=!online||!paused;
   cancel.disabled=!online||!(printing||paused);
   const ph=document.getElementById("ph-"+id); if(ph)ph.disabled=!online;
 }
@@ -1723,6 +1732,8 @@ function buildWidgetBody(w,body){
         :`<div class="pw-webcam"><span>No webcam stream</span></div>`;}
       break;
     case"controls":
+      {const p=printersById[w.printer]||{};
+      if(!canControl(p)){body.innerHTML='<div class="stat-empty">Controls unavailable</div>';break;}
       body.innerHTML=`<div class="pw-ctrl-grid">
         <button class="ctrl" onclick="control('${w.printer}','pause')">Pause</button>
         <button class="ctrl" onclick="control('${w.printer}','resume')">Resume</button>
@@ -1731,8 +1742,9 @@ function buildWidgetBody(w,body){
           <option value="">Preheat...</option><option>PLA</option><option>PETG</option><option>ABS</option>
         </select>
         <button class="ctrl" onclick="control('${w.printer}','cooldown')">Cooldown</button>
-        <button class="ctrl estop danger" onclick="control('${w.printer}','estop',null,true)">Stop</button>
+        ${hasAdvancedControls(p)?`<button class="ctrl estop danger" onclick="control('${w.printer}','estop',null,true)">Stop</button>`:""}
       </div>`;
+      }
       break;
   }
 }

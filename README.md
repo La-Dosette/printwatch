@@ -37,6 +37,7 @@ http://localhost:8088
 - Keep the agent running while using the dashboard.
 - Do not expose the agent to the public internet.
 - Printer settings stay in browser localStorage.
+- See `UNIVERSALITY_RESEARCH.md` for the protocol roadmap and sources used to expand printer support.
 
 ## Build Windows EXE
 

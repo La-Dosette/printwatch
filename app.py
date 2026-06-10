@@ -344,7 +344,7 @@ from connectors import empty_status, fetch_status
 
 PROTOCOL_CAPABILITIES = {
     "moonraker": {"monitoring": True, "controls": True, "stats": True, "webcam": True, "needs_credentials": False},
-    "octoprint": {"monitoring": True, "controls": False, "stats": False, "webcam": True, "needs_credentials": True},
+    "octoprint": {"monitoring": True, "controls": True, "stats": False, "webcam": True, "needs_credentials": True},
     "prusalink": {"monitoring": True, "controls": False, "stats": False, "webcam": False, "needs_credentials": True},
     "duet_rrf": {"monitoring": True, "controls": False, "stats": False, "webcam": False, "needs_credentials": False},
     "repetier_server": {"monitoring": False, "controls": False, "stats": False, "webcam": False, "needs_credentials": True},
@@ -534,6 +534,32 @@ def _try_moonraker_gcodes(base, scripts):
     return False
 
 
+def _octoprint_headers(printer):
+    apikey = (printer.get("apikey") or "").strip()
+    return {"X-Api-Key": apikey} if apikey else {}
+
+
+def _octoprint_post(printer, path, payload):
+    r = requests.post(f"{printer['base_url']}{path}", json=payload,
+                      headers=_octoprint_headers(printer), timeout=HTTP_TIMEOUT)
+    if r.status_code in (401, 403):
+        raise requests.HTTPError("OctoPrint API key missing or invalid", response=r)
+    r.raise_for_status()
+
+
+def _octoprint_job(printer, command, action=None):
+    payload = {"command": command}
+    if action:
+        payload["action"] = action
+    _octoprint_post(printer, "/api/job", payload)
+
+
+def _octoprint_gcodes(printer, commands):
+    if isinstance(commands, str):
+        commands = [commands]
+    _octoprint_post(printer, "/api/printer/command", {"commands": commands})
+
+
 # ==========================================================================
 # AGENT SANS ETAT - endpoints parametres par l'hote (config cote navigateur)
 # L'UI (hebergeable sur github.io) stocke la config en localStorage et passe
@@ -649,48 +675,68 @@ def api_stats_csv_q():
 @app.route("/api/control", methods=["POST"])
 def api_control_q():
     p = printer_from_params()
-    if p.get("type") != "moonraker":
-        return jsonify({"error": "Controls are only available for Moonraker"}), 422
     data = request.get_json(force=True, silent=True) or {}
     action = data.get("action")
     base = p["base_url"]
     try:
-        if action == "pause":
-            _moonraker_post(base, "/printer/print/pause")
-        elif action == "resume":
-            _moonraker_post(base, "/printer/print/resume")
-        elif action == "cancel":
-            _moonraker_post(base, "/printer/print/cancel")
-        elif action == "estop":
-            _moonraker_post(base, "/printer/emergency_stop")
-        elif action == "cooldown":
-            _moonraker_gcode(base, "TURN_OFF_HEATERS")
-        elif action == "light_on":
-            _try_moonraker_gcodes(base, [
-                "SET_PIN PIN=caselight VALUE=0",
-                "SET_PIN PIN=LED VALUE=0",
-                "SET_PIN PIN=light VALUE=0",
-                "SET_PIN PIN=chamber_light VALUE=0",
-                "M355 S1",
-                "LED_ON",
-            ])
-        elif action == "light_off":
-            _try_moonraker_gcodes(base, [
-                "SET_PIN PIN=caselight VALUE=1",
-                "SET_PIN PIN=LED VALUE=1",
-                "SET_PIN PIN=light VALUE=1",
-                "SET_PIN PIN=chamber_light VALUE=1",
-                "M355 S0",
-                "LED_OFF",
-            ])
-        elif action == "preheat":
-            preset = PREHEAT.get(data.get("material"))
-            if not preset:
-                return jsonify({"error": "Unknown material"}), 400
-            _moonraker_gcode(base, f"SET_HEATER_TEMPERATURE HEATER=extruder TARGET={preset['ext']}")
-            _moonraker_gcode(base, f"SET_HEATER_TEMPERATURE HEATER=heater_bed TARGET={preset['bed']}")
+        if p.get("type") == "moonraker":
+            if action == "pause":
+                _moonraker_post(base, "/printer/print/pause")
+            elif action == "resume":
+                _moonraker_post(base, "/printer/print/resume")
+            elif action == "cancel":
+                _moonraker_post(base, "/printer/print/cancel")
+            elif action == "estop":
+                _moonraker_post(base, "/printer/emergency_stop")
+            elif action == "cooldown":
+                _moonraker_gcode(base, "TURN_OFF_HEATERS")
+            elif action == "light_on":
+                _try_moonraker_gcodes(base, [
+                    "SET_PIN PIN=caselight VALUE=0",
+                    "SET_PIN PIN=LED VALUE=0",
+                    "SET_PIN PIN=light VALUE=0",
+                    "SET_PIN PIN=chamber_light VALUE=0",
+                    "M355 S1",
+                    "LED_ON",
+                ])
+            elif action == "light_off":
+                _try_moonraker_gcodes(base, [
+                    "SET_PIN PIN=caselight VALUE=1",
+                    "SET_PIN PIN=LED VALUE=1",
+                    "SET_PIN PIN=light VALUE=1",
+                    "SET_PIN PIN=chamber_light VALUE=1",
+                    "M355 S0",
+                    "LED_OFF",
+                ])
+            elif action == "preheat":
+                preset = PREHEAT.get(data.get("material"))
+                if not preset:
+                    return jsonify({"error": "Unknown material"}), 400
+                _moonraker_gcode(base, f"SET_HEATER_TEMPERATURE HEATER=extruder TARGET={preset['ext']}")
+                _moonraker_gcode(base, f"SET_HEATER_TEMPERATURE HEATER=heater_bed TARGET={preset['bed']}")
+            else:
+                return jsonify({"error": "Unknown action"}), 400
+        elif p.get("type") == "octoprint":
+            if action == "pause":
+                _octoprint_job(p, "pause", "pause")
+            elif action == "resume":
+                _octoprint_job(p, "pause", "resume")
+            elif action == "cancel":
+                _octoprint_job(p, "cancel")
+            elif action == "cooldown":
+                _octoprint_gcodes(p, ["M104 S0", "M140 S0"])
+            elif action == "preheat":
+                preset = PREHEAT.get(data.get("material"))
+                if not preset:
+                    return jsonify({"error": "Unknown material"}), 400
+                _octoprint_gcodes(p, [f"M104 S{preset['ext']}", f"M140 S{preset['bed']}"])
+            elif action in ("estop", "light_on", "light_off"):
+                return jsonify({"error": f"{action} is not supported for OctoPrint"}), 422
+            else:
+                return jsonify({"error": "Unknown action"}), 400
         else:
-            return jsonify({"error": "Unknown action"}), 400
+            ptype = p.get("type") or "this printer"
+            return jsonify({"error": f"Controls are not available for {ptype}"}), 422
     except requests.RequestException as e:
         return jsonify({"error": f"Command failed: {e}"}), 502
     return jsonify({"ok": True})

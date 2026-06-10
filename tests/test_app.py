@@ -73,6 +73,37 @@ class ApiTests(unittest.TestCase):
     def test_new_protocol_capabilities(self):
         self.assertTrue(printwatch.protocol_capabilities("prusalink")["needs_credentials"])
         self.assertFalse(printwatch.protocol_capabilities("creality_lan")["monitoring"])
+        self.assertTrue(printwatch.protocol_capabilities("octoprint")["controls"])
+
+    def test_octoprint_pause_control_uses_job_api(self):
+        with patch.object(printwatch.requests, "post") as post:
+            post.return_value.status_code = 204
+            post.return_value.raise_for_status.return_value = None
+            res = self.client.post(
+                "/api/control?host=printer&type=octoprint&apikey=key",
+                json={"action": "pause"},
+            )
+
+        self.assertEqual(res.status_code, 200)
+        post.assert_called_once()
+        args, kwargs = post.call_args
+        self.assertEqual(args[0], "http://printer/api/job")
+        self.assertEqual(kwargs["headers"]["X-Api-Key"], "key")
+        self.assertEqual(kwargs["json"], {"command": "pause", "action": "pause"})
+
+    def test_octoprint_preheat_control_sends_gcode_batch(self):
+        with patch.object(printwatch.requests, "post") as post:
+            post.return_value.status_code = 204
+            post.return_value.raise_for_status.return_value = None
+            res = self.client.post(
+                "/api/control?host=printer&type=octoprint&apikey=key",
+                json={"action": "preheat", "material": "PLA"},
+            )
+
+        self.assertEqual(res.status_code, 200)
+        args, kwargs = post.call_args
+        self.assertEqual(args[0], "http://printer/api/printer/command")
+        self.assertEqual(kwargs["json"], {"commands": ["M104 S210", "M140 S60"]})
 
 
 class ConnectorTests(unittest.TestCase):
