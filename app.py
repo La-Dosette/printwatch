@@ -357,15 +357,40 @@ PROTOCOL_CAPABILITIES = {
     "camera_only": {"monitoring": False, "controls": False, "stats": False, "webcam": True, "needs_credentials": False},
 }
 
+PROTOCOL_ACTIONS = {
+    "moonraker": [
+        "pause",
+        "resume",
+        "cancel",
+        "cooldown",
+        "preheat",
+        "light_on",
+        "light_off",
+        "estop",
+    ],
+    "octoprint": [
+        "pause",
+        "resume",
+        "cancel",
+        "cooldown",
+        "preheat",
+    ],
+}
+
 
 def protocol_capabilities(ptype):
-    return PROTOCOL_CAPABILITIES.get(ptype, {
+    caps = {
         "monitoring": False,
         "controls": False,
         "stats": False,
         "webcam": False,
         "needs_credentials": False,
-    })
+    }
+    caps.update(PROTOCOL_CAPABILITIES.get(ptype, {}))
+    actions = PROTOCOL_ACTIONS.get(ptype, [])
+    caps["actions"] = list(actions)
+    caps["controls"] = bool(caps.get("controls") and actions)
+    return caps
 
 
 def _clean_ftype(val):
@@ -677,6 +702,14 @@ def api_control_q():
     p = printer_from_params()
     data = request.get_json(force=True, silent=True) or {}
     action = data.get("action")
+    caps = protocol_capabilities(p.get("type"))
+    if action not in caps.get("actions", []):
+        return jsonify({
+            "error": "Action is not supported for this protocol",
+            "type": p.get("type"),
+            "action": action,
+            "supported_actions": caps.get("actions", []),
+        }), 422
     base = p["base_url"]
     try:
         if p.get("type") == "moonraker":

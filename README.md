@@ -11,6 +11,23 @@ PrintWatch runs a small Python agent on your PC. The web UI talks to that agent 
 - Shows status, progress, temperatures, webcam, basic stats, and controls when supported.
 - Sends optional Discord alerts.
 
+## Universal Protocol Model
+
+PrintWatch detects a printer family from an IP address, then exposes explicit
+capabilities to the UI:
+
+- `monitoring`
+- `webcam`
+- `controls`
+- `stats`
+- `needs_credentials`
+- `actions`, for example `pause`, `resume`, `cancel`, `preheat`, `cooldown`,
+  `light_on`, `light_off`, `estop`
+
+The UI only shows vendor controls when the agent declares the action supported.
+See [docs/protocol-research.md](docs/protocol-research.md) for the connector
+roadmap and protocol notes.
+
 ## Quick Start
 
 On Windows, double-click:
